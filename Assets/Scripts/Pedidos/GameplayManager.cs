@@ -10,6 +10,7 @@ public class GameplayManager : MonoBehaviour
     [Header("Panels")] // comentário para organizar o inspector
     [SerializeField] private GameObject panelOrder; // referência ao painel de pedidos
     [SerializeField] private GameObject panelMounting; // referência ao painel de montagem do pedido
+    [SerializeField] private GameObject panelPackaging; // referência ao painel de embalagem do pedido
     [SerializeField] private GameObject panelRoutes; // referência ao painel de rotas do pedido
     [SerializeField] private GameObject panelDelivery; // referência ao painel de entrega do pedido
     [SerializeField] private GameObject panelResult; // referência ao painel de resultado do pedido
@@ -29,6 +30,9 @@ public class GameplayManager : MonoBehaviour
     }
     private void SelectOrder(int index)
     {
+        panelOrder.SetActive(false); // desativa o painel de pedidos
+        panelMounting.SetActive(true); // ativa o painel de montagem do pedido
+
         SelectedOrderIndex = index;
         Debug.Log("Pedido selecionado: " + (index + 1) ); // exibe no console o índice do pedido selecionado
         GoToMountingPanel(); // chama o método para ir para o painel de montagem do pedido
@@ -58,6 +62,9 @@ public class GameplayManager : MonoBehaviour
 
         if (panelMounting != null)
             panelMounting.SetActive(false); // desativa o painel de montagem do pedido
+
+        if (panelPackaging != null)
+            panelPackaging.SetActive(false); // desativa o painel de embalagem do pedido
 
         if (panelRoutes != null)
             panelRoutes.SetActive(false); // desativa o painel de rotas do pedido
