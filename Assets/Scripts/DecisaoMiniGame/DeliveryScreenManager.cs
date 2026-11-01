@@ -2,6 +2,7 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using TMPro;
 
 public class DeliveryScreenManager : MonoBehaviour
 {
@@ -9,6 +10,9 @@ public class DeliveryScreenManager : MonoBehaviour
     [SerializeField] private GameObject painelEntrega;
     [SerializeField] private GameObject painelDecisao;
     [SerializeField] private GameObject painelLabirinto;
+
+    [Header("Textos")]
+    [SerializeField] private TextMeshProUGUI textoLabirinto;
 
     private bool eventoIniciado;
     private bool eventoJaAconteceu;
@@ -18,7 +22,7 @@ public class DeliveryScreenManager : MonoBehaviour
     private bool problemaResolvido;
 
     private void Update()
-    {
+    {        
         // Atalho temporário para testes
         if (Keyboard.current != null &&
             Keyboard.current.tKey.wasPressedThisFrame)
@@ -42,6 +46,7 @@ public class DeliveryScreenManager : MonoBehaviour
         {
             ConcluirLabirinto();
         }
+        
     }
 
     private IEnumerator AguardarEventoNegativo()
@@ -88,7 +93,7 @@ public class DeliveryScreenManager : MonoBehaviour
         painelDecisao.SetActive(false);
         problemaPendente = true;
         problemaResolvido = false;
-
+        
         Debug.Log("O jogador recusou o desafio. O problema continua pendente.");
     }
 
@@ -98,7 +103,19 @@ public class DeliveryScreenManager : MonoBehaviour
         problemaPendente = false;
         problemaResolvido = true;
 
+        textoLabirinto.text = "Labirinto Concluído!";
+        textoLabirinto.gameObject.SetActive(true);
+
+        StartCoroutine(OcultarMensagem());
+
         Debug.Log("Problema resolvido! O jogador pode continuar a entrega.");
+    }
+
+    private IEnumerator OcultarMensagem()
+    {
+        yield return new WaitForSeconds(3f);
+
+        textoLabirinto.gameObject.SetActive(false);
     }
 }
     
