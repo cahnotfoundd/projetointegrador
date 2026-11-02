@@ -68,4 +68,21 @@ using UnityEngine;
                 panelEmbalagemEtiquetagem.SetActive(true);
             }
         }
+
+        public void ResetMounting()
+        {
+            if (products != null)
+            {
+                foreach (ProdutoArrastavel product in products)
+                {
+                    if (product != null)
+                        product.ResetProduct();
+                }
+            }
+
+            if (proceedButton != null)
+                proceedButton.interactable = false;
+
+            Debug.Log("Montagem reiniciada.");
+        }
     }

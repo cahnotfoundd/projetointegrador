@@ -132,4 +132,24 @@ public class ProdutoArrastavel : MonoBehaviour, IPointerDownHandler, IDragHandle
 
         Debug.Log("Produto colocado na área de destino: " + gameObject.name);
     }
+
+    public void ResetProduct()
+{
+    placed = false;
+
+    if (originalParent != null)
+        rectTransform.SetParent(originalParent, false);
+
+    rectTransform.anchoredPosition = originalPosition;
+
+    CanvasGroup canvasGroup = GetComponent<CanvasGroup>();
+
+    if (canvasGroup != null)
+    {
+        canvasGroup.blocksRaycasts = true;
+        canvasGroup.interactable = true;
+    }
+
+    Debug.Log("Produto reiniciado: " + gameObject.name);
+}
 }

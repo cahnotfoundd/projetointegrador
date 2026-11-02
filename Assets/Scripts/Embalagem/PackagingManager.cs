@@ -20,6 +20,10 @@ public class PackagingManager : MonoBehaviour
     [SerializeField] private GameObject packagingPanel;
     [SerializeField] private GameObject nextScenePanel;
 
+    [Header("Itens Arrastáveis")]
+    [SerializeField] private DragDropPackaging packagingDrag;
+    [SerializeField] private DragDropPackaging labelDrag;
+
     // guardando o estado dos itens
     private bool isPackagePlaced;
     private bool isLabelPlaced;
@@ -98,5 +102,37 @@ public class PackagingManager : MonoBehaviour
         
         packagingPanel.SetActive(false);
         nextScenePanel.SetActive(true);
+    }
+
+    public void ResetPackaging()
+    {
+        isPackagePlaced = false;
+        isLabelPlaced = false;
+
+        if (packaging != null)
+            packaging.SetActive(true);
+
+        if (label != null)
+            label.SetActive(true);
+
+        if (closedBox != null)
+            closedBox.SetActive(true);
+
+        if (packagedBox != null)
+            packagedBox.SetActive(false);
+
+        if (labeledBox != null)
+            labeledBox.SetActive(false);
+
+        if (packagingDrag != null)
+            packagingDrag.ResetPackagingItem();
+
+        if (labelDrag != null)
+            labelDrag.ResetPackagingItem();
+
+        if (proceedButton != null)
+            proceedButton.interactable = false;
+
+        Debug.Log("Embalagem reiniciada.");
     }
 }

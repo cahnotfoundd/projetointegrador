@@ -350,4 +350,26 @@ public class RouteDrawingManager : MonoBehaviour
         if (routesPanel != null) routesPanel.SetActive(false);
         if (nextPanel != null) nextPanel.SetActive(true);
     }
+
+    public void ResetRoute()
+    {
+        paintedPoints.Clear();
+        candidateRoutes.Clear();
+
+        if (routeProgress != null)
+            Array.Clear(routeProgress, 0, routeProgress.Length);
+
+        selectedRoute = -1;
+        attemptStarted = false;
+        drawing = false;
+        routeCompleted = false;
+
+        if (routeLine != null)
+            routeLine.SetPoints(paintedPoints);
+
+        if (confirmButton != null)
+            confirmButton.interactable = false;
+
+        Debug.Log("Rota reiniciada.");
+    }
 }

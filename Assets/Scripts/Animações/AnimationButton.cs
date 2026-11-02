@@ -70,6 +70,21 @@ public class AnimationButton : MonoBehaviour, IPointerEnterHandler, IPointerExit
             ActivateState("Normal");
         }
     }
+
+    public void ResetAnimation()
+    {
+        isMouseOver = false;
+        isMouseClicking = false;
+
+        if (animator == null)
+            return;
+
+        animator.Rebind();
+        animator.Update(0f);
+
+        animator.Play("Normal", 0, 0f);
+        animator.Update(0f);
+    }
 }
 
 

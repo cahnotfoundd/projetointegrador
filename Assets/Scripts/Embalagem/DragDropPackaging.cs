@@ -43,9 +43,6 @@ public class DragDropPackaging : MonoBehaviour, IPointerDownHandler, IDragHandle
         if (applied)
             return;
         
-        originalParent = rectTransform.parent as RectTransform;
-        originalPosition = rectTransform.anchoredPosition;
-
         rectTransform.SetAsLastSibling();
     }
 
@@ -106,5 +103,17 @@ public class DragDropPackaging : MonoBehaviour, IPointerDownHandler, IDragHandle
             applied = true;
             packagingManager.TryPlacePackage();
         }
+    }
+
+    public void ResetPackagingItem()
+    {
+        applied = false;
+
+        if (originalParent != null)
+            rectTransform.SetParent(originalParent, false);
+
+        rectTransform.anchoredPosition = originalPosition;
+
+        Debug.Log("Item de embalagem reiniciado: " + gameObject.name);
     }
 }

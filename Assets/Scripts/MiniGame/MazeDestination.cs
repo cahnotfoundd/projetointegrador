@@ -1,4 +1,3 @@
-
 using UnityEngine;
 
 public class MazeDestination : MonoBehaviour
@@ -12,11 +11,24 @@ public class MazeDestination : MonoBehaviour
         if (concluido)
             return;
 
-        if (other.GetComponent<MazePlayerManager>() != null)
+        MazePlayerManager player =
+            other.GetComponent<MazePlayerManager>();
+
+        if (player != null)
         {
             concluido = true;
 
-            gerenciadorEntrega.ConcluirLabirinto();
+            if (gerenciadorEntrega != null)
+                gerenciadorEntrega.ConcluirLabirinto();
+            else
+                Debug.LogError("DeliveryScreenManager não conectado!");
         }
+    }
+
+    public void ResetDestination()
+    {
+        concluido = false;
+
+        Debug.Log("Destino liberado para nova tentativa.");
     }
 }
