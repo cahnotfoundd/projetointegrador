@@ -1,0 +1,274 @@
+fileFormatVersion: 2
+guid: f43a74cd86650144c80d2b0d05b7d676
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: 2467837588916232859
+    second: Orientacoes_0
+  - first:
+      213: 8874831398314338888
+    second: Orientacoes_1
+  - first:
+      213: 6862350767554061514
+    second: Orientacoes_2
+  - first:
+      213: -6354591792859747438
+    second: Orientacoes_3
+  - first:
+      213: -8140899113475649655
+    second: Orientacoes_4
+  - first:
+      213: -8422033576867424320
+    second: Orientacoes_5
+  - first:
+      213: -7945548387148667541
+    second: Orientacoes_6
+  - first:
+      213: -3564812209941581147
+    second: Orientacoes_7
+  - first:
+      213: -2267859859011708979
+    second: Orientacoes_8
+  - first:
+      213: -1839941519837257288
+    second: Orientacoes_9
+  - first:
+      213: 2384673661508614907
+    second: Orientacoes_10
+  - first:
+      213: -8152928331286075691
+    second: Orientacoes_11
+  - first:
+      213: -3936295294832557878
+    second: Orientacoes_12
+  - first:
+      213: -4143350005081674408
+    second: Orientacoes_13
+  - first:
+      213: 3381446017122748784
+    second: Orientacoes_14
+  - first:
+      213: -6918741581499712390
+    second: Orientacoes_15
+  - first:
+      213: 6359426104402254540
+    second: Orientacoes_16
+  - first:
+      213: -6866866914072792326
+    second: Orientacoes_17
+  - first:
+      213: -497076357368335916
+    second: Orientacoes_18
+  - first:
+      213: 7518046192922296265
+    second: Orientacoes_19
+  - first:
+      213: 9044574458573873620
+    second: Orientacoes_20
+  - first:
+      213: 2899844451714833777
+    second: Orientacoes_21
+  - first:
+      213: -1085759155016459805
+    second: Orientacoes_22
+  - first:
+      213: -2098525453279331132
+    second: Orientacoes_23
+  - first:
+      213: 748065833871776022
+    second: Orientacoes_24
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 0
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 0
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: WebGL
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: Orientacoes_0
+      rect:
+        serializedVersion: 2
+        x: 91
+        y: 74
+        width: 3139
+        height: 914
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b9265b246358f3220800000000000000
+      internalID: 2467837588916232859
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Orientacoes_10
+      rect:
+        serializedVersion: 2
+        x: 1445
+        y: 279
+        width: 222
+        height: 176
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: bfa73738f00181120800000000000000
+      internalID: 2384673661508614907
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 5ad7b1ed4acb46344af0f99be2cd0a1a
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      Orientacoes_0: 2467837588916232859
+      Orientacoes_1: 8874831398314338888
+      Orientacoes_10: 2384673661508614907
+      Orientacoes_11: -8152928331286075691
+      Orientacoes_12: -3936295294832557878
+      Orientacoes_13: -4143350005081674408
+      Orientacoes_14: 3381446017122748784
+      Orientacoes_15: -6918741581499712390
+      Orientacoes_16: 6359426104402254540
+      Orientacoes_17: -6866866914072792326
+      Orientacoes_18: -497076357368335916
+      Orientacoes_19: 7518046192922296265
+      Orientacoes_2: 6862350767554061514
+      Orientacoes_20: 9044574458573873620
+      Orientacoes_21: 2899844451714833777
+      Orientacoes_22: -1085759155016459805
+      Orientacoes_23: -2098525453279331132
+      Orientacoes_24: 748065833871776022
+      Orientacoes_3: -6354591792859747438
+      Orientacoes_4: -8140899113475649655
+      Orientacoes_5: -8422033576867424320
+      Orientacoes_6: -7945548387148667541
+      Orientacoes_7: -3564812209941581147
+      Orientacoes_8: -2267859859011708979
+      Orientacoes_9: -1839941519837257288
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
