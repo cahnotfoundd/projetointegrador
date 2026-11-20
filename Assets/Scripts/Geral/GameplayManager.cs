@@ -38,6 +38,10 @@ public class GameplayManager : MonoBehaviour
     [SerializeField] private MountingManager mountingManager;
     [SerializeField] private DeliveryScreenManager deliveryScreenManager;
 
+    [Header("Pedidos perdidos")]
+    [SerializeField]
+    private GeradorPedidoAleatorio geradorPedidoAleatorio;
+
     private int SelectedOrderIndex = -1;
 
     public int selectedOrderIndex => SelectedOrderIndex;
@@ -46,6 +50,7 @@ public class GameplayManager : MonoBehaviour
     private int diaAtual = 1;
     private int totalAvaliacoesPositivas;
     private int avaliacoesPositivasDia;
+    private int avaliacoesNegativasDoDia = 0;
 
     private void Start()
     {
@@ -103,45 +108,69 @@ public class GameplayManager : MonoBehaviour
     }
 
     // Chamado quando o jogador clica em Continuar na avaliação
+    
     public void RegistrarAvaliacao()
     {
         if (evaluationManager == null)
         {
-            Debug.LogError("CustomerEvaluationManager não foi conectado!");
+            Debug.LogError(
+                "CustomerEvaluationManager nao foi conectado!"
+            );
             return;
         }
 
+        // Le a nota final calculada pelo CustomerEvaluationManager.
+        // Ela ja inclui os resultados dos minigames.
         int nota = evaluationManager.deliveryNote;
 
+        // Registra uma entrega concluida.
         entregasDoDia++;
 
-        if (evaluationManager.positiveNote)
+        // Somente entregas com 5 estrelas contam para a meta.
+        if (nota == 5)
         {
             totalAvaliacoesPositivas++;
             avaliacoesPositivasDia++;
+
+            Debug.Log(
+                "Entrega com 5 estrelas registrada!"
+            );
         }
 
-        Debug.Log("Entregas do dia: " + entregasDoDia);
-        Debug.Log("Avaliações positivas acumuladas: " + totalAvaliacoesPositivas);
+        Debug.Log(
+            "Nota final da entrega: " + nota
+        );
 
-        // A vitória tem prioridade sobre o relatório
+        Debug.Log(
+            "Entregas do dia: " +
+            entregasDoDia + "/" + entregasPorDia
+        );
+
+        Debug.Log(
+            "Entregas com 5 estrelas acumuladas: " +
+            totalAvaliacoesPositivas + "/" +
+            metaAvaliacoesPositivas
+        );
+
+        // A vitoria tem prioridade sobre o relatorio.
         if (totalAvaliacoesPositivas >= metaAvaliacoesPositivas)
         {
             MostrarVitoria();
             return;
         }
 
-        // Verifica se as três entregas do dia foram concluídas
+        // Verifica se as entregas do dia terminaram.
         if (entregasDoDia >= entregasPorDia)
         {
             MostrarRelatorio();
             return;
         }
 
-        // Se ainda faltam entregas, reinicia as etapas e volta ao início
+        // Continua para o proximo pedido.
         ShowOrderPad();
         ReiniciarEtapas();
     }
+
 
     private void MostrarRelatorio()
     {
@@ -164,15 +193,24 @@ public class GameplayManager : MonoBehaviour
             textoDia.text = "Dia " + diaAtual;
 
         if (textoAvaliacoesPositivas != null)
+        {
             textoAvaliacoesPositivas.text =
-                "Entregas bem avaliadas do dia: " + avaliacoesPositivasDia;
+                "Entregas bem-sucedidas do dia: " +
+                avaliacoesPositivasDia;
+        }
 
         if (textoOtimizacaoRotas != null)
             textoOtimizacaoRotas.text =
                 "Otimização de Rotas:\n- Resumo das entregas concluídas.";
 
         if (textoAvisos != null)
-            textoAvisos.text = "Avisos: Nenhum.";
+        {
+            textoAvisos.text =
+                avaliacoesNegativasDoDia == 0
+                ? "Avisos: Nenhum pedido perdido."
+                : $"Pedidos não entregues: {avaliacoesNegativasDoDia} " +
+                $"(avaliações negativas).";
+        }
     }
 
     private void ReiniciarEtapas()
@@ -212,6 +250,7 @@ public class GameplayManager : MonoBehaviour
     {
         diaAtual++;
         entregasDoDia = 0;
+        avaliacoesNegativasDoDia = 0;
         avaliacoesPositivasDia = 0;
 
         ShowOrderPad();
@@ -244,5 +283,35 @@ public class GameplayManager : MonoBehaviour
             panelVictory.SetActive(true);
 
         Debug.Log("VITÓRIA! Meta de avaliações positivas alcançada.");
+    }
+
+
+    
+    public void RegistrarPedidoPerdido()
+    {
+        // O pedido perdido conta como um dos três do dia.
+        entregasDoDia++;
+
+        // Registra uma avaliação negativa.
+        avaliacoesNegativasDoDia++;
+
+        Debug.Log(
+            $"Pedido perdido! " +
+            $"Pedidos do dia: {entregasDoDia}/{entregasPorDia}");
+
+        // Se era o terceiro pedido, abre o relatório.
+        if (entregasDoDia >= entregasPorDia)
+        {
+            MostrarRelatorio();
+            return;
+        }
+
+        // Se ainda faltam pedidos, volta à escolha.
+        ReiniciarEtapas();
+        ShowOrderPad();
+
+        // Sorteia novas opções de pedidos.
+        if (geradorPedidoAleatorio != null)
+            geradorPedidoAleatorio.GerarNovoPedido();
     }
 }

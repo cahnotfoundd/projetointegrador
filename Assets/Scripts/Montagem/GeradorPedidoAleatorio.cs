@@ -109,6 +109,10 @@ public class GeradorPedidoAleatorio : MonoBehaviour
     [Header("Inicializacao")]
     [SerializeField] private bool gerarAoIniciar = true;
 
+    [Header("Substituicao")]
+    [SerializeField]
+    private SistemaSubstituicaoEntregador sistemaSubstituicao;
+
     private List<string> clientes = new List<string>();
 
     private readonly List<Pedido> pedidos =
@@ -434,6 +438,11 @@ public class GeradorPedidoAleatorio : MonoBehaviour
         DistanciaAtual = escolhido.distancia;
         EntregadorAtual = escolhido.entregador;
 
+        if (sistemaSubstituicao != null)
+        {
+            sistemaSubstituicao.PrepararNovoPedido();
+        }
+
         TotalProdutosEsperados =
             pedido.Sum(item => item.quantidade);
 
@@ -530,5 +539,60 @@ public class GeradorPedidoAleatorio : MonoBehaviour
         }
 
         objetosCriados.Clear();
+    }
+
+
+    public bool SortearEntregadorSubstituto(
+        out Entregador substituto)
+    {
+        substituto = null;
+
+        if (EntregadorAtual == null)
+            return false;
+
+        // Procura somente entregadores compatíveis
+        // com a distância original do pedido.
+        List<Entregador> candidatos =
+            Compativeis(DistanciaAtual)
+            .Where(e =>
+                e != EntregadorAtual &&
+                e.nome != EntregadorAtual.nome &&
+                e.tempoPreparacaoSegundos > 0 &&
+                e.fotoMontagem != null)
+            .ToList();
+
+        if (candidatos.Count == 0)
+        {
+            Debug.LogError(
+                "Nenhum substituto compatível disponível.");
+            return false;
+        }
+
+        substituto = candidatos[
+            UnityEngine.Random.Range(0, candidatos.Count)];
+
+        EntregadorAtual = substituto;
+
+        return true;
+    }
+
+    
+    public void ReiniciarCronometroDoEntregadorAtual()
+    {
+        if (EntregadorAtual == null)
+        {
+            Debug.LogError("Nenhum entregador atual definido!");
+            return;
+        }
+
+        if (cronometroPreparacao == null)
+        {
+            Debug.LogError("CronometroPreparacao não foi atribuído!");
+            return;
+        }
+
+        // Usa o mesmo cronômetro do pedido original.
+        // Atualiza a foto e reinicia o tempo do novo entregador.
+        cronometroPreparacao.Iniciar(EntregadorAtual);
     }
 }

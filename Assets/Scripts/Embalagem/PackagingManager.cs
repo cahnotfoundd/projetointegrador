@@ -24,6 +24,9 @@ public class PackagingManager : MonoBehaviour
     [SerializeField] private DragDropPackaging packagingDrag;
     [SerializeField] private DragDropPackaging labelDrag;
 
+    [Header("Cronometro")]
+    [SerializeField] private CronometroPreparacao cronometroPreparacao;
+
     // guardando o estado dos itens
     private bool isPackagePlaced;
     private bool isLabelPlaced;
@@ -102,6 +105,9 @@ public class PackagingManager : MonoBehaviour
         
         packagingPanel.SetActive(false);
         nextScenePanel.SetActive(true);
+
+        if (cronometroPreparacao != null)
+            cronometroPreparacao.Parar();
     }
 
     public void ResetPackaging()
