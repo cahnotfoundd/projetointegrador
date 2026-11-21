@@ -1,3 +1,4 @@
+
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -18,18 +19,26 @@ public class RouteDrawingManager : MonoBehaviour
     [SerializeField] private UILineGraphic routeLine;
 
     [Header("Rotas")]
-    [SerializeField] private RouteData[] routes = new RouteData[3];
+    [SerializeField] private RouteData[] routes =
+        new RouteData[3];
 
-    [Header("Navegação")]
+    [Header("Navegacao")]
     [SerializeField] private Button confirmButton;
     [SerializeField] private GameObject routesPanel;
     [SerializeField] private GameObject nextPanel;
 
-    [Header("Tolerâncias")]
-    [SerializeField, Range(0.01f, 0.2f)] private float startTolerance = 0.06f;
-    [SerializeField, Range(0.005f, 0.1f)] private float drawingTolerance = 0.025f;
-    [SerializeField] private float arrivalTolerance = 0.035f;
-    [SerializeField, Range(0.001f, 0.02f)] private float routeSelectionMargin = 0.003f;
+    [Header("Tolerancias")]
+    [SerializeField, Range(0.01f, 0.2f)]
+    private float startTolerance = 0.06f;
+
+    [SerializeField, Range(0.005f, 0.1f)]
+    private float drawingTolerance = 0.025f;
+
+    [SerializeField]
+    private float arrivalTolerance = 0.035f;
+
+    [SerializeField, Range(0.001f, 0.02f)]
+    private float routeSelectionMargin = 0.003f;
 
     private readonly List<Vector2> paintedPoints = new();
     private readonly List<int> candidateRoutes = new();
@@ -40,25 +49,41 @@ public class RouteDrawingManager : MonoBehaviour
     private bool drawing;
     private bool routeCompleted;
 
+    // AUDIO: impede chamadas repetidas ao AudioSource.
+    private bool somDesenhoAtivo;
+
     private Camera UICamera
     {
         get
         {
-            if (mapArea == null) return null;
+            if (mapArea == null)
+                return null;
 
-            Canvas canvas = mapArea.GetComponentInParent<Canvas>();
-            if (canvas == null) return Camera.main;
+            Canvas canvas =
+                mapArea.GetComponentInParent<Canvas>();
+
+            if (canvas == null)
+                return Camera.main;
 
             Canvas root = canvas.rootCanvas;
-            if (root.renderMode == RenderMode.ScreenSpaceOverlay) return null;
 
-            return root.worldCamera != null ? root.worldCamera : Camera.main;
+            if (root.renderMode ==
+                RenderMode.ScreenSpaceOverlay)
+            {
+                return null;
+            }
+
+            return root.worldCamera != null
+                ? root.worldCamera
+                : Camera.main;
         }
     }
 
     private void Start()
     {
-        routeProgress = new float[routes == null ? 0 : routes.Length];
+        routeProgress = new float[
+            routes == null ? 0 : routes.Length
+        ];
 
         if (routeLine != null)
             routeLine.SetPoints(paintedPoints);
@@ -69,7 +94,19 @@ public class RouteDrawingManager : MonoBehaviour
 
     private void Update()
     {
-        if (routeCompleted || Mouse.current == null) return;
+        // Nao permite desenhar ou tocar som fora da tela de rotas.
+        if (routesPanel != null &&
+            !routesPanel.activeInHierarchy)
+        {
+            ControlarSomDesenho(false);
+            return;
+        }
+
+        if (routeCompleted || Mouse.current == null)
+        {
+            ControlarSomDesenho(false);
+            return;
+        }
 
         if (Mouse.current.leftButton.wasPressedThisFrame)
             BeginDrawing();
@@ -77,52 +114,111 @@ public class RouteDrawingManager : MonoBehaviour
         if (drawing && Mouse.current.leftButton.isPressed)
             ContinueDrawing();
 
-        // Soltar o mouse pausa o desenho, mas preserva rota e progresso.
+        // Soltar o mouse pausa o desenho e o audio.
         if (Mouse.current.leftButton.wasReleasedThisFrame)
+        {
             drawing = false;
+            ControlarSomDesenho(false);
+        }
     }
 
-    private bool GetMapPosition(Vector2 screenPosition, out Vector2 normalized)
+    // AUDIO: controla o loop apenas quando necessario.
+    private void ControlarSomDesenho(bool deveTocar)
+    {
+        if (somDesenhoAtivo == deveTocar)
+            return;
+
+        somDesenhoAtivo = deveTocar;
+
+        LogiVeryEfeitosSonoros sons =
+            LogiVeryEfeitosSonoros.Instancia;
+
+        if (sons == null)
+            return;
+
+        if (deveTocar)
+            sons.IniciarSomDesenhoRota();
+        else
+            sons.PararSomDesenhoRota();
+    }
+
+    private bool GetMapPosition(
+        Vector2 screenPosition,
+        out Vector2 normalized)
     {
         normalized = Vector2.zero;
-        if (mapArea == null) return false;
 
-        if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(
-                mapArea, screenPosition, UICamera, out Vector2 local))
+        if (mapArea == null)
             return false;
 
+        if (!RectTransformUtility
+            .ScreenPointToLocalPointInRectangle(
+                mapArea,
+                screenPosition,
+                UICamera,
+                out Vector2 local))
+        {
+            return false;
+        }
+
         Rect rect = mapArea.rect;
-        if (rect.width <= 0f || rect.height <= 0f) return false;
+
+        if (rect.width <= 0f || rect.height <= 0f)
+            return false;
 
         normalized = new Vector2(
             (local.x - rect.xMin) / rect.width,
             (local.y - rect.yMin) / rect.height
         );
 
-        return normalized.x >= 0f && normalized.x <= 1f &&
-               normalized.y >= 0f && normalized.y <= 1f;
+        return normalized.x >= 0f &&
+               normalized.x <= 1f &&
+               normalized.y >= 0f &&
+               normalized.y <= 1f;
     }
 
     private void BeginDrawing()
     {
-        if (!GetMapPosition(Mouse.current.position.ReadValue(), out Vector2 cursor))
+        if (!GetMapPosition(
+            Mouse.current.position.ReadValue(),
+            out Vector2 cursor))
+        {
             return;
+        }
 
         if (attemptStarted)
         {
-            // Retoma de onde parou; não exige clicar novamente na origem.
+            // Retoma sem exigir clique na origem.
             drawing = true;
             return;
         }
 
-        if (!IsNearAnyStart(cursor)) return;
+        if (!IsNearAnyStart(cursor))
+            return;
 
         attemptStarted = true;
         drawing = true;
         selectedRoute = -1;
+
         candidateRoutes.Clear();
         paintedPoints.Clear();
-        Array.Clear(routeProgress, 0, routeProgress.Length);
+
+        if (routeProgress == null ||
+            routeProgress.Length !=
+            (routes == null ? 0 : routes.Length))
+        {
+            routeProgress = new float[
+                routes == null ? 0 : routes.Length
+            ];
+        }
+        else
+        {
+            Array.Clear(
+                routeProgress,
+                0,
+                routeProgress.Length
+            );
+        }
 
         for (int i = 0; i < routes.Length; i++)
         {
@@ -139,11 +235,19 @@ public class RouteDrawingManager : MonoBehaviour
 
     private bool IsNearAnyStart(Vector2 cursor)
     {
+        if (routes == null)
+            return false;
+
         for (int i = 0; i < routes.Length; i++)
         {
             if (IsValidRoute(i) &&
-                Vector2.Distance(cursor, routes[i].points[0]) <= startTolerance)
+                Vector2.Distance(
+                    cursor,
+                    routes[i].points[0]
+                ) <= startTolerance)
+            {
                 return true;
+            }
         }
 
         return false;
@@ -151,34 +255,55 @@ public class RouteDrawingManager : MonoBehaviour
 
     private bool IsValidRoute(int index)
     {
-        return routes != null && index >= 0 && index < routes.Length &&
-               routes[index] != null && routes[index].points != null &&
+        return routes != null &&
+               index >= 0 &&
+               index < routes.Length &&
+               routes[index] != null &&
+               routes[index].points != null &&
                routes[index].points.Length >= 2;
     }
 
     private void ContinueDrawing()
     {
-        if (!GetMapPosition(Mouse.current.position.ReadValue(), out Vector2 cursor))
+        if (!GetMapPosition(
+            Mouse.current.position.ReadValue(),
+            out Vector2 cursor))
+        {
+            ControlarSomDesenho(false);
             return;
+        }
 
-        if (candidateRoutes.Count == 0) return;
+        if (candidateRoutes.Count == 0)
+        {
+            ControlarSomDesenho(false);
+            return;
+        }
 
         int bestRoute = -1;
         float bestDistance = float.MaxValue;
         float secondDistance = float.MaxValue;
         float bestProgress = 0f;
 
-        // Mantém várias rotas candidatas enquanto o cursor percorre um trecho compartilhado.
+        // Preserva as rotas candidatas em trechos compartilhados.
         foreach (int routeIndex in candidateRoutes)
         {
             if (!TryProjectForward(
-                    cursor, routes[routeIndex].points, routeProgress[routeIndex],
-                    out float distance, out float projectedProgress))
+                cursor,
+                routes[routeIndex].points,
+                routeProgress[routeIndex],
+                out float distance,
+                out float projectedProgress))
+            {
                 continue;
+            }
 
             if (distance <= drawingTolerance * 2f)
+            {
                 routeProgress[routeIndex] = Mathf.Max(
-                    routeProgress[routeIndex], projectedProgress);
+                    routeProgress[routeIndex],
+                    projectedProgress
+                );
+            }
 
             if (distance < bestDistance)
             {
@@ -193,39 +318,67 @@ public class RouteDrawingManager : MonoBehaviour
             }
         }
 
-        if (bestRoute < 0 || bestDistance > drawingTolerance)
+        if (bestRoute < 0 ||
+            bestDistance > drawingTolerance)
+        {
+            ControlarSomDesenho(false);
             return;
+        }
 
-        // Se há empate, ainda não escolhe entre caminhos compartilhados.
-        bool ambiguous = secondDistance <= drawingTolerance &&
-                         secondDistance - bestDistance < routeSelectionMargin;
+        bool ambiguous =
+            secondDistance <= drawingTolerance &&
+            secondDistance - bestDistance <
+            routeSelectionMargin;
 
         if (!ambiguous)
         {
             selectedRoute = bestRoute;
             candidateRoutes.Clear();
             candidateRoutes.Add(selectedRoute);
+
             routeProgress[selectedRoute] = Mathf.Max(
-                routeProgress[selectedRoute], bestProgress);
+                routeProgress[selectedRoute],
+                bestProgress
+            );
         }
         else
         {
-            // Descarta somente trajetos que já ficaram claramente mais distantes.
             candidateRoutes.RemoveAll(index =>
                 !TryProjectForward(
-                    cursor, routes[index].points, routeProgress[index],
-                    out float distance, out _) ||
-                distance > bestDistance + routeSelectionMargin + drawingTolerance * 0.15f);
+                    cursor,
+                    routes[index].points,
+                    routeProgress[index],
+                    out float distance,
+                    out _) ||
+                distance >
+                    bestDistance +
+                    routeSelectionMargin +
+                    drawingTolerance * 0.15f
+            );
         }
 
-        int lineRoute = selectedRoute >= 0 ? selectedRoute : bestRoute;
-        UpdatePaintedLine(routes[lineRoute].points, routeProgress[lineRoute]);
+        int lineRoute =
+            selectedRoute >= 0
+                ? selectedRoute
+                : bestRoute;
 
-        // A conclusão só ocorre quando uma rota específica foi identificada.
+        UpdatePaintedLine(
+            routes[lineRoute].points,
+            routeProgress[lineRoute]
+        );
+
+        // AUDIO: o cursor esta sobre uma rota valida.
+        ControlarSomDesenho(true);
+
         if (selectedRoute >= 0)
         {
-            Vector2[] path = routes[selectedRoute].points;
-            float endDistance = Vector2.Distance(cursor, path[path.Length - 1]);
+            Vector2[] path =
+                routes[selectedRoute].points;
+
+            float endDistance = Vector2.Distance(
+                cursor,
+                path[path.Length - 1]
+            );
 
             if (routeProgress[selectedRoute] >= 0.999f &&
                 endDistance <= arrivalTolerance)
@@ -233,55 +386,87 @@ public class RouteDrawingManager : MonoBehaviour
                 routeProgress[selectedRoute] = 1f;
                 routeCompleted = true;
                 drawing = false;
+
                 UpdatePaintedLine(path, 1f);
 
                 if (confirmButton != null)
                     confirmButton.interactable = true;
+
+                // AUDIO: interrompe na conclusao.
+                ControlarSomDesenho(false);
             }
         }
     }
 
     private bool TryProjectForward(
-        Vector2 cursor, Vector2[] path, float currentProgress,
-        out float bestDistance, out float bestProgress)
+        Vector2 cursor,
+        Vector2[] path,
+        float currentProgress,
+        out float bestDistance,
+        out float bestProgress)
     {
         bestDistance = float.MaxValue;
         bestProgress = currentProgress;
 
         float totalLength = GetPathLength(path);
-        if (totalLength <= Mathf.Epsilon) return false;
 
-        float minimumDistance = currentProgress * totalLength;
+        if (totalLength <= Mathf.Epsilon)
+            return false;
+
+        float minimumDistance =
+            currentProgress * totalLength;
+
         float travelled = 0f;
 
         for (int i = 0; i < path.Length - 1; i++)
         {
             Vector2 a = path[i];
             Vector2 b = path[i + 1];
-            float segmentLength = Vector2.Distance(a, b);
 
-            if (segmentLength <= Mathf.Epsilon) continue;
+            float segmentLength =
+                Vector2.Distance(a, b);
 
-            float segmentEnd = travelled + segmentLength;
+            if (segmentLength <= Mathf.Epsilon)
+                continue;
+
+            float segmentEnd =
+                travelled + segmentLength;
+
             if (segmentEnd < minimumDistance)
             {
                 travelled = segmentEnd;
                 continue;
             }
 
-            float minT = Mathf.Clamp01((minimumDistance - travelled) / segmentLength);
+            float minT = Mathf.Clamp01(
+                (minimumDistance - travelled) /
+                segmentLength
+            );
+
             float t = Mathf.Clamp01(
-                Vector2.Dot(cursor - a, b - a) / (segmentLength * segmentLength));
+                Vector2.Dot(cursor - a, b - a) /
+                (segmentLength * segmentLength)
+            );
+
             t = Mathf.Max(t, minT);
 
-            Vector2 projected = Vector2.Lerp(a, b, t);
-            float distance = Vector2.Distance(cursor, projected);
-            float projectedProgress = (travelled + segmentLength * t) / totalLength;
+            Vector2 projected =
+                Vector2.Lerp(a, b, t);
+
+            float distance =
+                Vector2.Distance(cursor, projected);
+
+            float projectedProgress =
+                (travelled + segmentLength * t) /
+                totalLength;
 
             if (distance < bestDistance)
             {
                 bestDistance = distance;
-                bestProgress = Mathf.Max(currentProgress, projectedProgress);
+                bestProgress = Mathf.Max(
+                    currentProgress,
+                    projectedProgress
+                );
             }
 
             travelled = segmentEnd;
@@ -290,30 +475,51 @@ public class RouteDrawingManager : MonoBehaviour
         return bestDistance < float.MaxValue;
     }
 
-    private void UpdatePaintedLine(Vector2[] path, float normalizedProgress)
+    private void UpdatePaintedLine(
+        Vector2[] path,
+        float normalizedProgress)
     {
         paintedPoints.Clear();
         paintedPoints.Add(ToLocal(path[0]));
 
-        float targetDistance = normalizedProgress * GetPathLength(path);
+        float targetDistance =
+            normalizedProgress * GetPathLength(path);
+
         float travelled = 0f;
 
         for (int i = 0; i < path.Length - 1; i++)
         {
-            float segmentLength = Vector2.Distance(path[i], path[i + 1]);
+            float segmentLength =
+                Vector2.Distance(
+                    path[i],
+                    path[i + 1]
+                );
 
             if (travelled + segmentLength <= targetDistance)
             {
-                paintedPoints.Add(ToLocal(path[i + 1]));
+                paintedPoints.Add(
+                    ToLocal(path[i + 1])
+                );
             }
             else
             {
-                float remaining = targetDistance - travelled;
-                if (remaining > 0f && segmentLength > 0f)
+                float remaining =
+                    targetDistance - travelled;
+
+                if (remaining > 0f &&
+                    segmentLength > 0f)
                 {
                     Vector2 point = Vector2.Lerp(
-                        path[i], path[i + 1], Mathf.Clamp01(remaining / segmentLength));
-                    paintedPoints.Add(ToLocal(point));
+                        path[i],
+                        path[i + 1],
+                        Mathf.Clamp01(
+                            remaining / segmentLength
+                        )
+                    );
+
+                    paintedPoints.Add(
+                        ToLocal(point)
+                    );
                 }
 
                 break;
@@ -329,14 +535,22 @@ public class RouteDrawingManager : MonoBehaviour
     private float GetPathLength(Vector2[] path)
     {
         float length = 0f;
+
         for (int i = 0; i < path.Length - 1; i++)
-            length += Vector2.Distance(path[i], path[i + 1]);
+        {
+            length += Vector2.Distance(
+                path[i],
+                path[i + 1]
+            );
+        }
+
         return length;
     }
 
     private Vector2 ToLocal(Vector2 normalized)
     {
         Rect rect = mapArea.rect;
+
         return new Vector2(
             rect.xMin + normalized.x * rect.width,
             rect.yMin + normalized.y * rect.height
@@ -345,19 +559,33 @@ public class RouteDrawingManager : MonoBehaviour
 
     public void ConfirmRoute()
     {
-        if (!routeCompleted) return;
+        if (!routeCompleted)
+            return;
 
-        if (routesPanel != null) routesPanel.SetActive(false);
-        if (nextPanel != null) nextPanel.SetActive(true);
+        ControlarSomDesenho(false);
+
+        if (routesPanel != null)
+            routesPanel.SetActive(false);
+
+        if (nextPanel != null)
+            nextPanel.SetActive(true);
     }
 
     public void ResetRoute()
     {
+        ControlarSomDesenho(false);
+
         paintedPoints.Clear();
         candidateRoutes.Clear();
 
         if (routeProgress != null)
-            Array.Clear(routeProgress, 0, routeProgress.Length);
+        {
+            Array.Clear(
+                routeProgress,
+                0,
+                routeProgress.Length
+            );
+        }
 
         selectedRoute = -1;
         attemptStarted = false;
@@ -371,5 +599,11 @@ public class RouteDrawingManager : MonoBehaviour
             confirmButton.interactable = false;
 
         Debug.Log("Rota reiniciada.");
+    }
+
+    private void OnDisable()
+    {
+        drawing = false;
+        ControlarSomDesenho(false);
     }
 }

@@ -1,76 +1,191 @@
+
 using UnityEngine;
+using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 
 public class MainMenuController : MonoBehaviour
 {
-   // atribuindo a cena em uma variável
-   [Header("Scenes")]
-   [SerializeField] private string gameScene = "Gameplay";
+    [Header("Scenes")]
+    [SerializeField]
+    private string gameScene = "Gameplay";
 
-   [Header("Panels")]
-   [SerializeField] private GameObject menuPanel;
-   [SerializeField] private GameObject creditsPanel;
-   [SerializeField] private GameObject controlsPanel;
-   [Header("Animações dos botões")]
-    [SerializeField] private AnimationButton[] menuButtons;
+    [Header("Panels")]
+    [SerializeField] private GameObject menuPanel;
+    [SerializeField] private GameObject creditsPanel;
+    [SerializeField] private GameObject controlsPanel;
+    [SerializeField] private GameObject configPanel;
 
-    public void Start()
+    [Header("Animacoes dos botoes")]
+    [SerializeField]
+    private AnimationButton[] menuButtons;
+
+    [Header("Botao Continuar")]
+    [SerializeField]
+    private Button botaoContinuar;
+
+    private void Start()
     {
-        // garante que o painel de créditos esteja desativado no início
         if (creditsPanel != null)
             creditsPanel.SetActive(false);
 
         if (controlsPanel != null)
             controlsPanel.SetActive(false);
 
-        // garante que o painel do menu esteja ativado no início
+        if (configPanel != null)
+            configPanel.SetActive(false);
+
         if (menuPanel != null)
             menuPanel.SetActive(true);
+
+        AtualizarBotaoContinuar();
     }
 
-    // funcionalidade para botão de Novo Jogo
-   public void NewGame()
+    private void OnEnable()
     {
-        Debug.Log("Iniciando LogiVery...");
-
-        //carrega a cena do jogo
-        UnityEngine.SceneManagement.SceneManager.LoadScene(gameScene);
+        AtualizarBotaoContinuar();
     }
 
-    // funcionalidade para botão de Youtube
+    // =========================================
+    // NOVO JOGO
+    // =========================================
+
+    public void NewGame()
+    {
+        Debug.Log("Iniciando novo jogo LogiVery...");
+
+        // Apaga apenas o progresso anterior.
+        // As configuracoes de audio permanecem salvas.
+        GameplayManager.ApagarProgressoSalvo();
+
+        Time.timeScale = 1f;
+
+        SceneManager.LoadScene(gameScene);
+    }
+
+    // =========================================
+    // CONTINUAR JOGO
+    // =========================================
+
+    public void ContinueGame()
+    {
+        if (!GameplayManager.ExisteProgressoSalvo())
+        {
+            Debug.LogWarning(
+                "LogiVery: nao existe progresso salvo."
+            );
+
+            AtualizarBotaoContinuar();
+            return;
+        }
+
+        Debug.Log(
+            "LogiVery: continuando progresso salvo..."
+        );
+
+        Time.timeScale = 1f;
+
+        SceneManager.LoadScene(gameScene);
+    }
+
+    private void AtualizarBotaoContinuar()
+    {
+        bool existeSalvamento =
+            GameplayManager.ExisteProgressoSalvo();
+
+        if (botaoContinuar != null)
+        {
+            // Esconde completamente o botao
+            // quando nao existe salvamento.
+            botaoContinuar.gameObject.SetActive(
+                existeSalvamento
+            );
+
+            // Quando aparecer, permite clicar.
+            botaoContinuar.interactable =
+                existeSalvamento;
+        }
+
+        Debug.Log(
+            "LogiVery: botao Continuar " +
+            (existeSalvamento
+                ? "visivel e habilitado."
+                : "invisivel.")
+        );
+    }
+
+    // =========================================
+    // LINKS
+    // =========================================
+
     public void OpenYoutube()
     {
         Debug.Log("Abrindo Youtube...");
 
-        // abre o link do youtube
-        Application.OpenURL("https://youtu.be/YkPjSgFzd_g");
+        Application.OpenURL(
+            "https://youtu.be/YkPjSgFzd_g"
+        );
     }
+
+    public void OpenSite()
+    {
+        Debug.Log("Abrindo Site...");
+
+        Application.OpenURL(
+            "https://urbanlinkflow.vercel.app/"
+        );
+    }
+
+    // =========================================
+    // PAINEIS
+    // =========================================
 
     public void OpenCredits()
     {
-        Debug.Log("Abrindo Créditos...");
+        Debug.Log("Abrindo Creditos...");
 
-        // ativa o painel de créditos e desativa o painel do menu
-        creditsPanel.SetActive(true);
-        menuPanel.SetActive(false);
+        if (creditsPanel != null)
+            creditsPanel.SetActive(true);
+
+        if (menuPanel != null)
+            menuPanel.SetActive(false);
     }
 
     public void OpenControls()
     {
         Debug.Log("Abrindo Controles...");
 
-        // ativa o painel de controles e desativa o painel do menu
-        controlsPanel.SetActive(true);
-        menuPanel.SetActive(false);
+        if (controlsPanel != null)
+            controlsPanel.SetActive(true);
+
+        if (menuPanel != null)
+            menuPanel.SetActive(false);
+    }
+
+    public void OpenConfig()
+    {
+        Debug.Log("Abrindo Configuracoes...");
+
+        if (configPanel != null)
+            configPanel.SetActive(true);
+
+        if (menuPanel != null)
+            menuPanel.SetActive(false);
     }
 
     public void BackToMenu()
     {
-        // ativa o painel do menu e desativa o painel de créditos
-        menuPanel.SetActive(true);
-        creditsPanel.SetActive(false);
-        controlsPanel.SetActive(false);
+        if (menuPanel != null)
+            menuPanel.SetActive(true);
 
-        // reinicia a animação dos botões do menu principal
+        if (creditsPanel != null)
+            creditsPanel.SetActive(false);
+
+        if (controlsPanel != null)
+            controlsPanel.SetActive(false);
+
+        if (configPanel != null)
+            configPanel.SetActive(false);
+
         if (menuButtons != null)
         {
             foreach (AnimationButton button in menuButtons)
@@ -81,15 +196,20 @@ public class MainMenuController : MonoBehaviour
                 }
             }
         }
-        
+
+        AtualizarBotaoContinuar();
+
         Debug.Log("Voltando ao menu principal...");
     }
+
+    // =========================================
+    // SAIR
+    // =========================================
 
     public void QuitGame()
     {
         Debug.Log("Saindo do jogo...");
 
-        // fecha o jogo
         Application.Quit();
     }
 }

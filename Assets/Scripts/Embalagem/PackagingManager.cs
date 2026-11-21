@@ -1,10 +1,9 @@
+
 using UnityEngine;
 using UnityEngine.UI;
 
 public class PackagingManager : MonoBehaviour
 {
-    //variaveis
-
     [Header("Box States")]
     [SerializeField] private GameObject closedBox;
     [SerializeField] private GameObject packagedBox;
@@ -20,57 +19,72 @@ public class PackagingManager : MonoBehaviour
     [SerializeField] private GameObject packagingPanel;
     [SerializeField] private GameObject nextScenePanel;
 
-    [Header("Itens Arrastáveis")]
+    [Header("Itens Arrastaveis")]
     [SerializeField] private DragDropPackaging packagingDrag;
     [SerializeField] private DragDropPackaging labelDrag;
 
     [Header("Cronometro")]
     [SerializeField] private CronometroPreparacao cronometroPreparacao;
 
-    // guardando o estado dos itens
     private bool isPackagePlaced;
     private bool isLabelPlaced;
 
-    // permitindo que outros scripts acessem o estado dos itens
     public bool PackagePlaced => isPackagePlaced;
     public bool LabelPlaced => isLabelPlaced;
-
 
     private void Start()
     {
         if (closedBox != null)
-        closedBox.SetActive(true);
+            closedBox.SetActive(true);
 
         if (packagedBox != null)
-        packagedBox.SetActive(false);
+            packagedBox.SetActive(false);
 
         if (labeledBox != null)
-        labeledBox.SetActive(false);
+            labeledBox.SetActive(false);
 
         if (proceedButton != null)
-        proceedButton.interactable = false;
+            proceedButton.interactable = false;
     }
 
-    public bool ItsOnBox(Vector2 screenPosition, Camera eventCamera)
+    public bool ItsOnBox(
+        Vector2 screenPosition,
+        Camera eventCamera)
     {
-        return RectTransformUtility.RectangleContainsScreenPoint(boxArea, screenPosition, eventCamera);
+        if (boxArea == null)
+            return false;
+
+        return RectTransformUtility.RectangleContainsScreenPoint(
+            boxArea,
+            screenPosition,
+            eventCamera
+        );
     }
 
     public void TryPlacePackage()
     {
         if (isPackagePlaced)
             return;
-        
+
         isPackagePlaced = true;
 
-        packaging.gameObject.SetActive(false);
+        if (packaging != null)
+            packaging.SetActive(false);
 
-        closedBox.SetActive(false);
-        packagedBox.SetActive(true);
-        labeledBox.SetActive(false);
+        if (closedBox != null)
+            closedBox.SetActive(false);
+
+        if (packagedBox != null)
+            packagedBox.SetActive(true);
+
+        if (labeledBox != null)
+            labeledBox.SetActive(false);
+
+        // AUDIO: embrulho colocado corretamente.
+        LogiVeryEfeitosSonoros.Instancia?
+            .TocarEmbalagem();
 
         UpdateProgress();
-
     }
 
     public void TryPutLabel()
@@ -80,21 +94,31 @@ public class PackagingManager : MonoBehaviour
 
         isLabelPlaced = true;
 
-        label.gameObject.SetActive(false);
+        if (label != null)
+            label.SetActive(false);
 
-        closedBox.SetActive(false);
-        packagedBox.SetActive(false);
-        labeledBox.SetActive(true);
+        if (closedBox != null)
+            closedBox.SetActive(false);
+
+        if (packagedBox != null)
+            packagedBox.SetActive(false);
+
+        if (labeledBox != null)
+            labeledBox.SetActive(true);
+
+        // AUDIO: etiqueta aplicada corretamente.
+        LogiVeryEfeitosSonoros.Instancia?
+            .TocarEtiqueta();
 
         UpdateProgress();
-
     }
 
     private void UpdateProgress()
     {
         if (proceedButton != null)
         {
-            proceedButton.interactable = isPackagePlaced && isLabelPlaced;
+            proceedButton.interactable =
+                isPackagePlaced && isLabelPlaced;
         }
     }
 
@@ -102,9 +126,12 @@ public class PackagingManager : MonoBehaviour
     {
         if (!isPackagePlaced || !isLabelPlaced)
             return;
-        
-        packagingPanel.SetActive(false);
-        nextScenePanel.SetActive(true);
+
+        if (packagingPanel != null)
+            packagingPanel.SetActive(false);
+
+        if (nextScenePanel != null)
+            nextScenePanel.SetActive(true);
 
         if (cronometroPreparacao != null)
             cronometroPreparacao.Parar();

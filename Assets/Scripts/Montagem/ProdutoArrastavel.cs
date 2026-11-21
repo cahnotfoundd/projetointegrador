@@ -7,26 +7,39 @@ public class ProdutoArrastavel : MonoBehaviour,
     IDragHandler,
     IPointerUpHandler
 {
+    public enum TipoSomProduto
+    {
+        Automatico,
+        Adesivo,
+        CadernoAgenda,
+        KitMarcadores,
+        PostIt,
+        Estojo
+    }
+
     [Header("References")]
     [SerializeField] private RectTransform boxArea;
     [SerializeField] private MountingManager mountingManager;
 
+    [Header("Som do produto")]
+    [SerializeField]
+    private TipoSomProduto tipoSom = TipoSomProduto.Automatico;
+
     [Header("State")]
     [SerializeField] private bool placed;
 
-    // Quantidade de unidades que este objeto representa.
     private int quantidadeRepresentada = 1;
 
     public bool Placed => placed;
     public int QuantidadeRepresentada => quantidadeRepresentada;
+    public TipoSomProduto TipoSom => tipoSom;
 
     private RectTransform rectTransform;
     private RectTransform originalParent;
     private Vector2 originalPosition;
     private Canvas canvas;
 
-
-    void Awake()
+    private void Awake()
     {
         rectTransform = GetComponent<RectTransform>();
 
@@ -38,10 +51,10 @@ public class ProdutoArrastavel : MonoBehaviour,
         if (canvas == null)
         {
             Debug.LogError(
-                "O Produto não está no Canvas.", this);
+                "O Produto nao esta no Canvas.", this
+            );
         }
     }
-
 
     // Configura o produto criado pelo GeradorPedidoAleatorio.
     public void ConfigurarParaPedido(
@@ -73,26 +86,38 @@ public class ProdutoArrastavel : MonoBehaviour,
         }
     }
 
+    private void TocarSomInteracao()
+    {
+        if (mountingManager != null)
+        {
+            mountingManager.TocarSomProduto(this);
+        }
+    }
 
     public void OnPointerDown(PointerEventData eventData)
     {
-        if (placed) return;
+        if (placed)
+            return;
 
         originalParent = rectTransform.parent as RectTransform;
         originalPosition = rectTransform.anchoredPosition;
 
+        // Som quando o jogador pressiona o mouse.
+        TocarSomInteracao();
+
         rectTransform.SetAsLastSibling();
     }
 
-
     public void OnDrag(PointerEventData eventData)
     {
-        if (placed || canvas == null) return;
+        if (placed || canvas == null)
+            return;
 
         RectTransform movementArea =
             rectTransform.parent as RectTransform;
 
-        if (movementArea == null) return;
+        if (movementArea == null)
+            return;
 
         if (RectTransformUtility.ScreenPointToLocalPointInRectangle(
             movementArea,
@@ -104,16 +129,24 @@ public class ProdutoArrastavel : MonoBehaviour,
         }
     }
 
-
     public void OnPointerUp(PointerEventData eventData)
     {
-        if (placed || boxArea == null) return;
+        if (placed)
+            return;
+
+        // Som quando o jogador solta o mouse,
+        // dentro ou fora da caixa.
+        TocarSomInteracao();
+
+        if (boxArea == null)
+            return;
 
         bool placedInBox =
             RectTransformUtility.RectangleContainsScreenPoint(
                 boxArea,
                 eventData.position,
-                eventData.pressEventCamera);
+                eventData.pressEventCamera
+            );
 
         if (placedInBox)
         {
@@ -125,7 +158,6 @@ public class ProdutoArrastavel : MonoBehaviour,
             rectTransform.anchoredPosition = originalPosition;
         }
     }
-
 
     private void PutInBox(PointerEventData eventData)
     {
@@ -149,16 +181,20 @@ public class ProdutoArrastavel : MonoBehaviour,
         float productHalfHeight = rectTransform.rect.height / 2f;
 
         float limitX = Mathf.Max(
-            0f, halfWidth - productHalfWidth);
+            0f, halfWidth - productHalfWidth
+        );
 
         float limitY = Mathf.Max(
-            0f, halfHeight - productHalfHeight);
+            0f, halfHeight - productHalfHeight
+        );
 
         localPosition.x = Mathf.Clamp(
-            localPosition.x, -limitX, limitX);
+            localPosition.x, -limitX, limitX
+        );
 
         localPosition.y = Mathf.Clamp(
-            localPosition.y, -limitY, limitY);
+            localPosition.y, -limitY, limitY
+        );
 
         rectTransform.anchoredPosition = localPosition;
 
@@ -172,7 +208,7 @@ public class ProdutoArrastavel : MonoBehaviour,
             canvasGroup.interactable = false;
         }
 
-        // Avisa o MountingManager somente uma vez.
+        // Atualiza a montagem, sem reproduzir outro som.
         if (mountingManager != null)
         {
             mountingManager.CheckOrderCompletion();
@@ -180,15 +216,16 @@ public class ProdutoArrastavel : MonoBehaviour,
         else
         {
             Debug.LogError(
-                "MountingManager não está atribuído!", this);
+                "MountingManager nao esta atribuido!", this
+            );
         }
 
         Debug.Log(
             "Produto colocado: " + gameObject.name +
             " | Quantidade representada: " +
-            quantidadeRepresentada);
+            quantidadeRepresentada
+        );
     }
-
 
     public void ResetProduct()
     {
@@ -210,6 +247,7 @@ public class ProdutoArrastavel : MonoBehaviour,
         }
 
         Debug.Log(
-            "Produto reiniciado: " + gameObject.name);
+            "Produto reiniciado: " + gameObject.name
+        );
     }
 }

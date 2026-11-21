@@ -116,5 +116,8 @@ public class CustomerEvaluationManager : MonoBehaviour
                 "O cliente esta insatisfeito com a entrega. " +
                 "E importante analisar o que deu errado.";
         }
+
+        //texto em caixa alta
+        feedbackText.text = feedbackText.text.ToUpperInvariant();
     }
 }

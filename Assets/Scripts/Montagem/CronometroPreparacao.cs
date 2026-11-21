@@ -17,7 +17,10 @@ public class CronometroPreparacao : MonoBehaviour
     private float tempoRestante;
     private bool contando;
 
-    // Avisa o sistema de substituição.
+    // Controla o intervalo do tic-tac.
+    private float intervaloSom;
+
+    // Avisa o sistema de substituicao.
     public event Action AoEsgotarTempo;
 
     public void Iniciar(
@@ -25,7 +28,7 @@ public class CronometroPreparacao : MonoBehaviour
     {
         if (entregador == null)
         {
-            Debug.LogError("Entregador não encontrado!");
+            Debug.LogError("Entregador nao encontrado!");
             return;
         }
 
@@ -33,9 +36,12 @@ public class CronometroPreparacao : MonoBehaviour
         AtualizarFoto(fotoEmbalagem, entregador.fotoMontagem);
 
         tempoRestante = Mathf.Max(
-            1, entregador.tempoPreparacaoSegundos);
+            1, entregador.tempoPreparacaoSegundos
+        );
 
         contando = true;
+        intervaloSom = 0f;
+
         AtualizarTexto();
     }
 
@@ -44,14 +50,33 @@ public class CronometroPreparacao : MonoBehaviour
         if (!contando)
             return;
 
+        float delta = Time.deltaTime;
+
         tempoRestante = Mathf.Max(
-            0f, tempoRestante - Time.deltaTime);
+            0f, tempoRestante - delta
+        );
 
         AtualizarTexto();
+
+        // Som uma vez por segundo enquanto houver tempo.
+        if (tempoRestante > 0f)
+        {
+            intervaloSom += delta;
+
+            if (intervaloSom >= 1f)
+            {
+                intervaloSom %= 1f;
+
+                LogiVeryEfeitosSonoros.Instancia?
+                    .TocarCronometro();
+            }
+        }
 
         if (tempoRestante <= 0f)
         {
             contando = false;
+            intervaloSom = 0f;
+
             AoEsgotarTempo?.Invoke();
         }
     }
@@ -59,6 +84,7 @@ public class CronometroPreparacao : MonoBehaviour
     public void Parar()
     {
         contando = false;
+        intervaloSom = 0f;
     }
 
     private void AtualizarFoto(Image imagem, Sprite foto)

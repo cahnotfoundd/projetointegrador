@@ -7,10 +7,12 @@ using TMPro;
 public class SemaforoMinigame : MonoBehaviour
 {
     [Header("Gerenciador da Entrega")]
-    [SerializeField] private DeliveryScreenManager gerenciadorEntrega;
+    [SerializeField]
+    private DeliveryScreenManager gerenciadorEntrega;
 
     [Header("Imagem unica do semaforo")]
-    [SerializeField] private Image imagemSemaforo;
+    [SerializeField]
+    private Image imagemSemaforo;
 
     [Header("Sprites dos quatro estados")]
     [SerializeField] private Sprite spriteApagado;
@@ -24,10 +26,25 @@ public class SemaforoMinigame : MonoBehaviour
     [SerializeField] private Button botaoAvancar;
 
     [Header("Dificuldade")]
-    [SerializeField] private float tempoMaximoDesafio = 13f;
-    [SerializeField] private float tempoVerdeMinimo = 0.45f;
-    [SerializeField] private float tempoVerdeMaximo = 0.85f;
-    [SerializeField] private float duracaoAviso = 1.7f;
+    [SerializeField]
+    private float tempoMaximoDesafio = 13f;
+
+    [SerializeField]
+    private float tempoVerdeMinimo = 0.45f;
+
+    [SerializeField]
+    private float tempoVerdeMaximo = 0.85f;
+
+    [SerializeField]
+    private float duracaoAviso = 1.7f;
+
+    [Header("Duracao da luz amarela")]
+    [SerializeField]
+    private float duracaoAmarelo = 0.55f;
+
+    [Header("Diagnostico do som")]
+    [SerializeField]
+    private bool mostrarLogsDeAudio = true;
 
     private enum EstadoSinal
     {
@@ -43,12 +60,15 @@ public class SemaforoMinigame : MonoBehaviour
     private bool desafioEncerrado;
 
     private Coroutine rotinaLuzes;
+    private bool avisouGerenciadorAusente;
 
     private void OnEnable()
     {
-        // Reinicia o desafio a cada abertura.
         tempoDecorrido = 0f;
         desafioEncerrado = false;
+        avisouGerenciadorAusente = false;
+
+        estadoAtual = EstadoSinal.Apagado;
 
         if (textoInstrucao != null)
         {
@@ -57,17 +77,23 @@ public class SemaforoMinigame : MonoBehaviour
         }
 
         if (textoAviso != null)
+        {
             textoAviso.text = "";
+        }
 
         if (botaoAvancar != null)
+        {
             botaoAvancar.interactable = true;
+        }
 
         MostrarEstado(
             EstadoSinal.Apagado,
             spriteApagado
         );
 
-        rotinaLuzes = StartCoroutine(AlternarLuzes());
+        rotinaLuzes = StartCoroutine(
+            AlternarLuzes()
+        );
     }
 
     private void Update()
@@ -77,7 +103,6 @@ public class SemaforoMinigame : MonoBehaviour
 
         tempoDecorrido += Time.deltaTime;
 
-        // Impede que o minigame fique aberto para sempre.
         if (tempoDecorrido >= tempoMaximoDesafio)
         {
             EncerrarDesafio(
@@ -91,7 +116,6 @@ public class SemaforoMinigame : MonoBehaviour
     {
         while (!desafioEncerrado)
         {
-            // Semaforo apagado por um intervalo aleatorio.
             MostrarEstado(
                 EstadoSinal.Apagado,
                 spriteApagado
@@ -101,7 +125,9 @@ public class SemaforoMinigame : MonoBehaviour
                 Random.Range(0.6f, 1.8f)
             );
 
-            // Sinal vermelho.
+            if (desafioEncerrado)
+                yield break;
+
             MostrarEstado(
                 EstadoSinal.Vermelho,
                 spriteVermelho
@@ -111,15 +137,21 @@ public class SemaforoMinigame : MonoBehaviour
                 Random.Range(0.6f, 1.2f)
             );
 
-            // Sinal amarelo.
+            if (desafioEncerrado)
+                yield break;
+
             MostrarEstado(
                 EstadoSinal.Amarelo,
                 spriteAmarelo
             );
 
-            yield return new WaitForSeconds(0.4f);
+            yield return new WaitForSeconds(
+                Mathf.Max(0.1f, duracaoAmarelo)
+            );
 
-            // Verde aparece rapidamente.
+            if (desafioEncerrado)
+                yield break;
+
             MostrarEstado(
                 EstadoSinal.Verde,
                 spriteVerde
@@ -144,8 +176,6 @@ public class SemaforoMinigame : MonoBehaviour
             yield return new WaitForSeconds(
                 Random.Range(minimo, maximo)
             );
-
-            // O ciclo volta ao estado apagado.
         }
     }
 
@@ -153,6 +183,9 @@ public class SemaforoMinigame : MonoBehaviour
         EstadoSinal novoEstado,
         Sprite novoSprite)
     {
+        bool mudouDeEstado =
+            novoEstado != estadoAtual;
+
         estadoAtual = novoEstado;
 
         if (imagemSemaforo != null)
@@ -160,9 +193,69 @@ public class SemaforoMinigame : MonoBehaviour
             imagemSemaforo.sprite = novoSprite;
             imagemSemaforo.color = Color.white;
         }
+
+        // Cada luz acesa solicita o som
+        // exatamente quando o sprite muda.
+        if (mudouDeEstado &&
+            novoEstado != EstadoSinal.Apagado)
+        {
+            TocarSomDaLuz();
+        }
     }
 
-    // Chamado pelo BotaoAvancar.
+    private void TocarSomDaLuz()
+    {
+        LogiVeryEfeitosSonoros sons =
+            LogiVeryEfeitosSonoros.Instancia;
+
+        if (sons == null)
+        {
+            if (!avisouGerenciadorAusente)
+            {
+                Debug.LogError(
+                    "Semaforo: LogiVeryEfeitosSonoros " +
+                    "nao encontrado! Confira o AudioManager.",
+                    this
+                );
+
+                avisouGerenciadorAusente = true;
+            }
+
+            return;
+        }
+
+        // Agora usa o sistema centralizado:
+        // AudioManager > Semaforo.
+        sons.TocarLuzSemaforo();
+
+        if (mostrarLogsDeAudio)
+        {
+            Debug.Log(
+                "Semaforo: som solicitado para a luz " +
+                estadoAtual,
+                this
+            );
+        }
+    }
+
+    // Permite testar o audio sem esperar
+    // o semaforo mudar de cor.
+    [ContextMenu("TESTAR SOM DO SEMAFORO (Play Mode)")]
+    private void TestarSomDoSemaforo()
+    {
+        if (!Application.isPlaying)
+        {
+            Debug.LogWarning(
+                "Entre no Play Mode para testar.",
+                this
+            );
+
+            return;
+        }
+
+        TocarSomDaLuz();
+    }
+
     public void TentarAvancar()
     {
         if (desafioEncerrado)
@@ -193,7 +286,6 @@ public class SemaforoMinigame : MonoBehaviour
 
         desafioEncerrado = true;
 
-        // Congela o semaforo no sprite atual.
         if (rotinaLuzes != null)
         {
             StopCoroutine(rotinaLuzes);
@@ -211,13 +303,18 @@ public class SemaforoMinigame : MonoBehaviour
         );
     }
 
-    private IEnumerator FecharDepoisDoAviso(bool sucesso)
+    private IEnumerator FecharDepoisDoAviso(
+        bool sucesso)
     {
-        yield return new WaitForSeconds(duracaoAviso);
+        yield return new WaitForSeconds(
+            duracaoAviso
+        );
 
         if (gerenciadorEntrega != null)
         {
-            gerenciadorEntrega.ConcluirSemaforo(sucesso);
+            gerenciadorEntrega.ConcluirSemaforo(
+                sucesso
+            );
         }
         else
         {
@@ -230,10 +327,27 @@ public class SemaforoMinigame : MonoBehaviour
 
     private void OnDisable()
     {
-        if (rotinaLuzes != null)
-        {
-            StopCoroutine(rotinaLuzes);
-            rotinaLuzes = null;
-        }
+        StopAllCoroutines();
+        rotinaLuzes = null;
+
+        // Evita que um bipe continue tocando
+        // depois que o minigame for fechado.
+        LogiVeryEfeitosSonoros sons =
+            LogiVeryEfeitosSonoros.Instancia;
+
+        if (sons == null)
+            return;
+
+        Transform objetoSom =
+            sons.transform.Find("Semaforo");
+
+        if (objetoSom == null)
+            return;
+
+        AudioSource fonte =
+            objetoSom.GetComponent<AudioSource>();
+
+        if (fonte != null)
+            fonte.Stop();
     }
 }
