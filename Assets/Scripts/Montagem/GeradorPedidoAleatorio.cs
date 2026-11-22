@@ -1,7 +1,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using TMPro;
 using UnityEngine;
@@ -17,8 +16,6 @@ public class GeradorPedidoAleatorio : MonoBehaviour
         public string nome;
         public GameObject prefab;
 
-        // Imagens que aparecem no papel, de acordo
-        // com a quantidade solicitada.
         [Tooltip("Imagem da folha para 1 unidade.")]
         public Sprite demanda1;
 
@@ -34,7 +31,6 @@ public class GeradorPedidoAleatorio : MonoBehaviour
             qtd == 3 ? demanda3 : null;
     }
 
-    
     [Serializable]
     public class Entregador
     {
@@ -47,11 +43,9 @@ public class GeradorPedidoAleatorio : MonoBehaviour
         public bool atendeCurta;
         public bool atendeLonga;
 
-        // Tempo de preparação em segundos.
         [Min(1)]
         public int tempoPreparacaoSegundos = 90;
     }
-
 
     [Serializable]
     public class Item
@@ -61,7 +55,6 @@ public class GeradorPedidoAleatorio : MonoBehaviour
         public Sprite imagem;
     }
 
-    // Referências dos elementos de UMA folha.
     [Serializable]
     public class FolhaUI
     {
@@ -74,7 +67,6 @@ public class GeradorPedidoAleatorio : MonoBehaviour
         public RectTransform demandasContainer;
     }
 
-    // Informações sorteadas para um pedido.
     private class Pedido
     {
         public string cliente;
@@ -86,6 +78,13 @@ public class GeradorPedidoAleatorio : MonoBehaviour
     [Header("Cadastros")]
     [SerializeField] private Produto[] produtos;
     [SerializeField] private Entregador[] entregadores;
+
+    [Header("Arquivo de nomes dos clientes")]
+    [Tooltip(
+        "Arraste aqui o arquivo NomesClientes.txt. " +
+        "Compatível com Windows e WebGL."
+    )]
+    [SerializeField] private TextAsset arquivoNomesClientes;
 
     [Header("Imagens")]
     [SerializeField] private Sprite distanciaCurta;
@@ -124,9 +123,14 @@ public class GeradorPedidoAleatorio : MonoBehaviour
     private List<Item> pedido = new List<Item>();
 
     public int TotalProdutosEsperados { get; private set; }
+
     public IReadOnlyList<Item> PedidoAtual => pedido;
-    public IReadOnlyList<GameObject> ProdutosCriados => objetosCriados;
+
+    public IReadOnlyList<GameObject> ProdutosCriados =>
+        objetosCriados;
+
     public Distancia DistanciaAtual { get; private set; }
+
     public Entregador EntregadorAtual { get; private set; }
 
     private void Start()
@@ -137,44 +141,65 @@ public class GeradorPedidoAleatorio : MonoBehaviour
             GerarNovoPedido();
     }
 
-    // Lê os nomes de clientes do arquivo TXT.
+    // Carrega o TXT diretamente como recurso da Unity.
+    // Funciona tanto no Windows quanto no WebGL.
     private void CarregarClientes()
     {
-        string caminho = Path.Combine(
-            Application.streamingAssetsPath,
-            "NomesClientes.txt");
+        clientes.Clear();
 
-        if (!File.Exists(caminho))
+        if (arquivoNomesClientes == null)
         {
             Debug.LogError(
-                "NomesClientes.txt nao encontrado.");
+                "NomesClientes.txt nao foi atribuido no Inspector!"
+            );
             return;
         }
 
         try
         {
-            clientes = File.ReadAllLines(caminho)
-                .Select(n => n.Trim())
-                .Where(n => n.Length > 0)
+            clientes = arquivoNomesClientes.text
+                .Split(
+                    new[] { '\r', '\n' },
+                    StringSplitOptions.RemoveEmptyEntries
+                )
+                .Select(nome => nome.Trim())
+                .Where(nome => nome.Length > 0)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
+
+            if (clientes.Count == 0)
+            {
+                Debug.LogError(
+                    "NomesClientes.txt esta vazio ou " +
+                    "nao possui nomes validos."
+                );
+                return;
+            }
+
+            Debug.Log(
+                "Nomes dos clientes carregados: " +
+                clientes.Count
+            );
         }
         catch (Exception erro)
         {
             Debug.LogError(
-                "Erro ao carregar clientes: " + erro.Message);
+                "Erro ao carregar clientes: " + erro.Message
+            );
         }
     }
 
-    // Escolhe entregadores compatíveis com a distância.
+    // Escolhe entregadores compativeis com a distancia.
     private List<Entregador> Compativeis(Distancia distancia)
     {
         return (entregadores ?? Array.Empty<Entregador>())
-            .Where(e => e != null &&
+            .Where(e =>
+                e != null &&
                 e.imagemCompleta != null &&
                 (distancia == Distancia.Curta
                     ? e.atendeCurta
-                    : e.atendeLonga))
+                    : e.atendeLonga)
+            )
             .ToList();
     }
 
@@ -184,33 +209,35 @@ public class GeradorPedidoAleatorio : MonoBehaviour
         GrupoPedidoVisual grupo =
             produto.prefab.GetComponent<GrupoPedidoVisual>();
 
-        // Produtos sem variações representam 1 unidade.
         int maximo = grupo == null
             ? 1
             : grupo.QuantidadeMaxima;
 
         return Enumerable.Range(
-                1, Mathf.Clamp(maximo, 0, 3))
+                1,
+                Mathf.Clamp(maximo, 0, 3)
+            )
             .Where(q => produto.Imagem(q) != null)
             .ToList();
     }
 
-    // Monta opções de pedidos com duas demandas.
+    // Monta opcoes de pedidos com duas demandas.
     private List<Item[]> CriarCombinacoes()
     {
         var validos = (produtos ?? Array.Empty<Produto>())
-            .Where(p => p != null &&
+            .Where(p =>
+                p != null &&
                 p.prefab != null &&
                 p.prefab.GetComponent<RectTransform>() != null &&
                 p.prefab.GetComponent<ProdutoArrastavel>() != null &&
-                Quantidades(p).Count > 0)
+                Quantidades(p).Count > 0
+            )
             .GroupBy(p => p.prefab)
             .Select(g => g.First())
             .ToList();
 
         var combinacoes = new List<Item[]>();
 
-        // Combina dois tipos diferentes de produto.
         for (int a = 0; a < validos.Count; a++)
         {
             for (int b = a + 1; b < validos.Count; b++)
@@ -242,7 +269,7 @@ public class GeradorPedidoAleatorio : MonoBehaviour
         return combinacoes;
     }
 
-    // Sorteia os três pedidos.
+    // Sorteia os tres pedidos.
     public void GerarNovoPedido()
     {
         if (clientes.Count == 0)
@@ -254,22 +281,24 @@ public class GeradorPedidoAleatorio : MonoBehaviour
             folhas.Any(f => f == null))
         {
             Debug.LogError(
-                "Verifique os nomes e as tres folhas.");
+                "Verifique os nomes e as tres folhas."
+            );
             return;
         }
 
         List<Item[]> combinacoes = CriarCombinacoes();
 
-        // Precisamos de 3 opções diferentes.
         if (combinacoes.Count < 3)
         {
             Debug.LogError(
                 "Cadastre produtos suficientes para " +
-                "formar tres pedidos diferentes.");
+                "formar tres pedidos diferentes."
+            );
             return;
         }
 
-        List<Distancia> distancias = new List<Distancia>();
+        List<Distancia> distancias =
+            new List<Distancia>();
 
         if (distanciaCurta != null &&
             Compativeis(Distancia.Curta).Count > 0)
@@ -286,7 +315,8 @@ public class GeradorPedidoAleatorio : MonoBehaviour
         if (distancias.Count == 0)
         {
             Debug.LogError(
-                "Cadastre distancias e entregadores validos.");
+                "Cadastre distancias e entregadores validos."
+            );
             return;
         }
 
@@ -300,28 +330,29 @@ public class GeradorPedidoAleatorio : MonoBehaviour
         TotalProdutosEsperados = 0;
         EntregadorAtual = null;
 
-        // Sorteia nomes sem repetir, se houver nomes suficientes.
         var nomes = clientes
             .OrderBy(_ => UnityEngine.Random.value)
             .ToList();
 
         for (int i = 0; i < 3; i++)
         {
-            // Retira uma combinação para não repetir
-            // o mesmo pedido em outra folha.
             int indice = UnityEngine.Random.Range(
-                0, combinacoes.Count);
+                0,
+                combinacoes.Count
+            );
 
             Item[] par = combinacoes[indice];
             combinacoes.RemoveAt(indice);
 
-            // Sorteia a distância.
             Distancia distancia = distancias[
                 UnityEngine.Random.Range(
-                    0, distancias.Count)];
+                    0,
+                    distancias.Count
+                )
+            ];
 
-            // Escolhe a ficha de um entregador adequado.
-            List<Entregador> aptos = Compativeis(distancia);
+            List<Entregador> aptos =
+                Compativeis(distancia);
 
             Pedido novo = new Pedido
             {
@@ -329,10 +360,12 @@ public class GeradorPedidoAleatorio : MonoBehaviour
                 distancia = distancia,
                 entregador = aptos[
                     UnityEngine.Random.Range(
-                        0, aptos.Count)]
+                        0,
+                        aptos.Count
+                    )
+                ]
             };
 
-            // Pode inverter qual demanda fica primeiro.
             if (UnityEngine.Random.value < 0.5f)
             {
                 novo.itens.Add(par[0]);
@@ -346,12 +379,13 @@ public class GeradorPedidoAleatorio : MonoBehaviour
 
             pedidos.Add(novo);
 
-            // Preenche apenas a folha correspondente.
             ExibirFolha(folhas[i], novo);
         }
 
         Debug.Log(
-            "Tres pedidos diferentes gerados com duas demandas cada.");
+            "Tres pedidos diferentes gerados " +
+            "com duas demandas cada."
+        );
     }
 
     // Coloca os dados sorteados na folha.
@@ -370,15 +404,16 @@ public class GeradorPedidoAleatorio : MonoBehaviour
             folha.imagemDistancia.SetNativeSize();
         }
 
-        // Curta = elétrica = ecológico.
-        // Longa = combustível = não ecológico.
+        // Curta = eletrica = ecologico.
+        // Longa = combustivel = nao ecologico.
         if (folha.imagemTrajeto != null)
         {
             bool ecologico =
                 dados.distancia == Distancia.Curta;
 
             folha.imagemTrajeto.gameObject.SetActive(
-                ecologico);
+                ecologico
+            );
 
             if (ecologico)
             {
@@ -393,18 +428,24 @@ public class GeradorPedidoAleatorio : MonoBehaviour
                 dados.entregador.imagemCompleta;
         }
 
-        // As duas imagens das demandas.
-        MostrarDemanda(folha.demanda1, dados.itens[0]);
-        MostrarDemanda(folha.demanda2, dados.itens[1]);
+        MostrarDemanda(
+            folha.demanda1,
+            dados.itens[0]
+        );
+
+        MostrarDemanda(
+            folha.demanda2,
+            dados.itens[1]
+        );
 
         if (folha.demandasContainer != null)
         {
             LayoutRebuilder.ForceRebuildLayoutImmediate(
-                folha.demandasContainer);
+                folha.demandasContainer
+            );
         }
     }
 
-    // Exibe a imagem de quantidade correta.
     private void MostrarDemanda(Image imagem, Item item)
     {
         if (imagem == null)
@@ -428,7 +469,8 @@ public class GeradorPedidoAleatorio : MonoBehaviour
             panelMontagem == null)
         {
             Debug.LogError(
-                "Pedido invalido ou referencias ausentes.");
+                "Pedido invalido ou referencias ausentes."
+            );
             return;
         }
 
@@ -446,14 +488,15 @@ public class GeradorPedidoAleatorio : MonoBehaviour
         TotalProdutosEsperados =
             pedido.Sum(item => item.quantidade);
 
-        // Remove produtos de uma seleção anterior.
         LimparProdutos();
 
         // Abre a tela antes de criar os objetos.
         panelMontagem.SetActive(true);
-        mountingManager.ConfigurarProdutos(objetosCriados);
 
-        // Uma demanda por lado, um prefab por demanda.
+        mountingManager.ConfigurarProdutos(
+            objetosCriados
+        );
+
         for (int i = 0; i < pedido.Count; i++)
         {
             Item item = pedido[i];
@@ -465,7 +508,8 @@ public class GeradorPedidoAleatorio : MonoBehaviour
             GameObject obj = Instantiate(
                 item.produto.prefab,
                 destino,
-                false);
+                false
+            );
 
             Debug.Log(
                 $"[MONTAGEM] Folha {indice + 1} | " +
@@ -484,49 +528,50 @@ public class GeradorPedidoAleatorio : MonoBehaviour
             GrupoPedidoVisual grupo =
                 obj.GetComponent<GrupoPedidoVisual>();
 
-            // Não modifica os desenhos internos.
             rect.anchoredPosition = Vector2.zero;
 
-            // Mostra a quantidade de variações solicitada.
             if (grupo != null)
             {
                 grupo.ConfigurarQuantidade(
-                    item.quantidade);
+                    item.quantidade
+                );
             }
 
             arrastavel.ConfigurarParaPedido(
                 areaCaixa,
                 mountingManager,
-                item.quantidade);
+                item.quantidade
+            );
 
             objetosCriados.Add(obj);
         }
 
-        // O gerenciador acompanha os dois prefabs.
         mountingManager.ConfigurarProdutos(
-            objetosCriados);
+            objetosCriados
+        );
 
-        
         panelPedidos.SetActive(false);
 
-        // Atualiza a foto e inicia o tempo do entregador escolhido.
         if (cronometroPreparacao != null)
         {
-            cronometroPreparacao.Iniciar(EntregadorAtual);
+            cronometroPreparacao.Iniciar(
+                EntregadorAtual
+            );
         }
         else
         {
             Debug.LogError(
-                "CronometroPreparacao não foi atribuído!");
+                "CronometroPreparacao nao foi atribuido!"
+            );
         }
 
         Debug.Log(
             $"Pedido {indice + 1} escolhido: " +
-            escolhido.cliente);
-
+            escolhido.cliente
+        );
     }
 
-    // Apaga os produtos criados anteriormente.
+    // Apaga produtos criados anteriormente.
     private void LimparProdutos()
     {
         foreach (GameObject obj in objetosCriados)
@@ -541,58 +586,65 @@ public class GeradorPedidoAleatorio : MonoBehaviour
         objetosCriados.Clear();
     }
 
-
     public bool SortearEntregadorSubstituto(
-        out Entregador substituto)
+        out Entregador substituto
+    )
     {
         substituto = null;
 
         if (EntregadorAtual == null)
             return false;
 
-        // Procura somente entregadores compatíveis
-        // com a distância original do pedido.
         List<Entregador> candidatos =
             Compativeis(DistanciaAtual)
             .Where(e =>
                 e != EntregadorAtual &&
                 e.nome != EntregadorAtual.nome &&
                 e.tempoPreparacaoSegundos > 0 &&
-                e.fotoMontagem != null)
+                e.fotoMontagem != null
+            )
             .ToList();
 
         if (candidatos.Count == 0)
         {
             Debug.LogError(
-                "Nenhum substituto compatível disponível.");
+                "Nenhum substituto compativel disponivel."
+            );
             return false;
         }
 
         substituto = candidatos[
-            UnityEngine.Random.Range(0, candidatos.Count)];
+            UnityEngine.Random.Range(
+                0,
+                candidatos.Count
+            )
+        ];
 
         EntregadorAtual = substituto;
 
         return true;
     }
 
-    
     public void ReiniciarCronometroDoEntregadorAtual()
     {
         if (EntregadorAtual == null)
         {
-            Debug.LogError("Nenhum entregador atual definido!");
+            Debug.LogError(
+                "Nenhum entregador atual definido!"
+            );
             return;
         }
 
         if (cronometroPreparacao == null)
         {
-            Debug.LogError("CronometroPreparacao não foi atribuído!");
+            Debug.LogError(
+                "CronometroPreparacao nao foi atribuido!"
+            );
             return;
         }
 
-        // Usa o mesmo cronômetro do pedido original.
-        // Atualiza a foto e reinicia o tempo do novo entregador.
-        cronometroPreparacao.Iniciar(EntregadorAtual);
+        cronometroPreparacao.Iniciar(
+            EntregadorAtual
+        );
     }
 }

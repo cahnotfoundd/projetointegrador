@@ -1,4 +1,3 @@
-
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
@@ -6,8 +5,8 @@ using TMPro;
 public class CustomerEvaluationManager : MonoBehaviour
 {
     [Header("Estrelas da Avaliacao")]
-    [SerializeField] private SpriteRenderer[] orderStars;
-    [SerializeField] private SpriteRenderer[] deliveryStars;
+    [SerializeField] private Image[] orderStars;
+    [SerializeField] private Image[] deliveryStars;
 
     [Header("Textos da Avaliacao")]
     [SerializeField] private TextMeshProUGUI feedbackText;
@@ -30,49 +29,26 @@ public class CustomerEvaluationManager : MonoBehaviour
         ShowRandomNote(0);
     }
 
-    // NOVO: recebe o resultado dos minigames.
     public void ShowRandomNote(int modificadorEntrega)
     {
-        // A nota do pedido continua fixa em 5.
         orderNote = 5;
-
-        // Nota-base aleatoria, como no sistema original.
         int notaBase = 3;
 
-        // Limita o impacto dos desafios.
-        int modificadorAplicado = Mathf.Clamp(
-            modificadorEntrega,
-            -2,
-            2
-        );
+        int modificadorAplicado = Mathf.Clamp(modificadorEntrega, -2, 2);
+        deliveryNote = Mathf.Clamp(notaBase + modificadorAplicado, 0, 5);
 
-        // Calcula a nota final entre 0 e 5.
-        deliveryNote = Mathf.Clamp(
-            notaBase + modificadorAplicado,
-            0,
-            5
-        );
-
-        // Atualiza as estrelas.
         UpdateStars(orderStars, orderNote);
         UpdateStars(deliveryStars, deliveryNote);
-
-        // Atualiza o texto de feedback.
         UpdateFeedback();
 
         Debug.Log("Nota-base: " + notaBase);
-
-        Debug.Log(
-            "Modificador dos minigames: " +
-            modificadorAplicado
-        );
-
+        Debug.Log("Modificador dos minigames: " + modificadorAplicado);
         Debug.Log("Nota do Pedido: " + orderNote);
         Debug.Log("Nota da Entrega: " + deliveryNote);
         Debug.Log("Avaliacao Positiva: " + positiveNote);
     }
 
-    private void UpdateStars(SpriteRenderer[] stars, int note)
+    private void UpdateStars(Image[] stars, int note)
     {
         if (stars == null)
             return;
@@ -82,8 +58,7 @@ public class CustomerEvaluationManager : MonoBehaviour
             if (stars[i] == null)
                 continue;
 
-            stars[i].color =
-                i < note ? positiveColor : negativeColor;
+            stars[i].color = i < note ? positiveColor : negativeColor;
         }
     }
 
@@ -117,7 +92,6 @@ public class CustomerEvaluationManager : MonoBehaviour
                 "E importante analisar o que deu errado.";
         }
 
-        //texto em caixa alta
         feedbackText.text = feedbackText.text.ToUpperInvariant();
     }
 }

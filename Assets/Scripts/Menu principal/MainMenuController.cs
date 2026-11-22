@@ -1,6 +1,5 @@
 
 using UnityEngine;
-using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 
 public class MainMenuController : MonoBehaviour
@@ -9,22 +8,35 @@ public class MainMenuController : MonoBehaviour
     [SerializeField]
     private string gameScene = "Gameplay";
 
+    [Header("Cena inicializadora")]
+    [SerializeField]
+    private string initialScene = "Inicializadora";
+
     [Header("Panels")]
-    [SerializeField] private GameObject menuPanel;
-    [SerializeField] private GameObject creditsPanel;
-    [SerializeField] private GameObject controlsPanel;
-    [SerializeField] private GameObject configPanel;
+    [SerializeField]
+    private GameObject menuPanel;
+
+    [SerializeField]
+    private GameObject creditsPanel;
+
+    [SerializeField]
+    private GameObject controlsPanel;
+
+    [SerializeField]
+    private GameObject configPanel;
+
+    [Header("Botao Continuar")]
+    [SerializeField]
+    private GameObject botaoContinuar;
 
     [Header("Animacoes dos botoes")]
     [SerializeField]
     private AnimationButton[] menuButtons;
 
-    [Header("Botao Continuar")]
-    [SerializeField]
-    private Button botaoContinuar;
-
     private void Start()
     {
+        Time.timeScale = 1f;
+
         if (creditsPanel != null)
             creditsPanel.SetActive(false);
 
@@ -40,83 +52,73 @@ public class MainMenuController : MonoBehaviour
         AtualizarBotaoContinuar();
     }
 
-    private void OnEnable()
-    {
-        AtualizarBotaoContinuar();
-    }
-
-    // =========================================
-    // NOVO JOGO
-    // =========================================
-
-    public void NewGame()
-    {
-        Debug.Log("Iniciando novo jogo LogiVery...");
-
-        // Apaga apenas o progresso anterior.
-        // As configuracoes de audio permanecem salvas.
-        GameplayManager.ApagarProgressoSalvo();
-
-        Time.timeScale = 1f;
-
-        SceneManager.LoadScene(gameScene);
-    }
-
-    // =========================================
-    // CONTINUAR JOGO
-    // =========================================
-
-    public void ContinueGame()
-    {
-        if (!GameplayManager.ExisteProgressoSalvo())
-        {
-            Debug.LogWarning(
-                "LogiVery: nao existe progresso salvo."
-            );
-
-            AtualizarBotaoContinuar();
-            return;
-        }
-
-        Debug.Log(
-            "LogiVery: continuando progresso salvo..."
-        );
-
-        Time.timeScale = 1f;
-
-        SceneManager.LoadScene(gameScene);
-    }
-
-    private void AtualizarBotaoContinuar()
+    // Verifica se existe uma partida salva.
+    // Sem salvamento, o botao fica INVISIVEL.
+    public void AtualizarBotaoContinuar()
     {
         bool existeSalvamento =
             GameplayManager.ExisteProgressoSalvo();
 
         if (botaoContinuar != null)
         {
-            // Esconde completamente o botao
-            // quando nao existe salvamento.
-            botaoContinuar.gameObject.SetActive(
-                existeSalvamento
+            botaoContinuar.SetActive(existeSalvamento);
+        }
+        else
+        {
+            Debug.LogWarning(
+                "LogiVery: Botao Continuar nao foi " +
+                "atribuido no Inspector.",
+                this
             );
-
-            // Quando aparecer, permite clicar.
-            botaoContinuar.interactable =
-                existeSalvamento;
         }
 
         Debug.Log(
-            "LogiVery: botao Continuar " +
-            (existeSalvamento
-                ? "visivel e habilitado."
-                : "invisivel.")
+            "LogiVery: progresso salvo encontrado: " +
+            existeSalvamento
         );
     }
 
-    // =========================================
-    // LINKS
-    // =========================================
+    // NOVO JOGO
+    public void NewGame()
+    {
+        // Um novo jogo nao deve recuperar
+        // o progresso de uma partida anterior.
+        GameplayManager.ApagarProgressoSalvo();
 
+        Time.timeScale = 1f;
+
+        Debug.Log(
+            "LogiVery: iniciando nova partida."
+        );
+
+        SceneManager.LoadScene(gameScene);
+    }
+
+    // CONTINUAR JOGO
+    public void ContinueGame()
+    {
+        if (!GameplayManager.ExisteProgressoSalvo())
+        {
+            Debug.LogWarning(
+                "LogiVery: nenhum progresso salvo " +
+                "para continuar."
+            );
+
+            AtualizarBotaoContinuar();
+            return;
+        }
+
+        Time.timeScale = 1f;
+
+        Debug.Log(
+            "LogiVery: continuando partida salva."
+        );
+
+        // O GameplayManager restaurara os dados.
+        SceneManager.LoadScene(gameScene);
+    }
+
+    // YOUTUBE
     public void OpenYoutube()
     {
         Debug.Log("Abrindo Youtube...");
@@ -126,6 +128,7 @@ public class MainMenuController : MonoBehaviour
         );
     }
 
+    // SITE
     public void OpenSite()
     {
         Debug.Log("Abrindo Site...");
@@ -135,10 +138,7 @@ public class MainMenuController : MonoBehaviour
         );
     }
 
-    // =========================================
-    // PAINEIS
-    // =========================================
-
+    // CREDITOS
     public void OpenCredits()
     {
         Debug.Log("Abrindo Creditos...");
@@ -150,6 +150,7 @@ public class MainMenuController : MonoBehaviour
             menuPanel.SetActive(false);
     }
 
+    // CONTROLES
     public void OpenControls()
     {
         Debug.Log("Abrindo Controles...");
@@ -161,6 +162,7 @@ public class MainMenuController : MonoBehaviour
             menuPanel.SetActive(false);
     }
 
+    // CONFIGURACOES
     public void OpenConfig()
     {
         Debug.Log("Abrindo Configuracoes...");
@@ -172,6 +174,7 @@ public class MainMenuController : MonoBehaviour
             menuPanel.SetActive(false);
     }
 
+    // VOLTAR AO MENU PRINCIPAL
     public void BackToMenu()
     {
         if (menuPanel != null)
@@ -186,30 +189,31 @@ public class MainMenuController : MonoBehaviour
         if (configPanel != null)
             configPanel.SetActive(false);
 
+        AtualizarBotaoContinuar();
+
         if (menuButtons != null)
         {
             foreach (AnimationButton button in menuButtons)
             {
                 if (button != null)
-                {
                     button.ResetAnimation();
-                }
             }
         }
 
-        AtualizarBotaoContinuar();
-
-        Debug.Log("Voltando ao menu principal...");
+        Debug.Log(
+            "Voltando ao menu principal..."
+        );
     }
 
-    // =========================================
-    // SAIR
-    // =========================================
-
-    public void QuitGame()
+    // SAIR PARA A INICIALIZADORA
+    public void QuitScene()
     {
-        Debug.Log("Saindo do jogo...");
+        Time.timeScale = 1f;
 
-        Application.Quit();
+        Debug.Log(
+            "Voltando a tela inicializadora..."
+        );
+
+        SceneManager.LoadScene(initialScene);
     }
 }

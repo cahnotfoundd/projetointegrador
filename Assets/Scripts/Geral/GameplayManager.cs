@@ -23,42 +23,66 @@ public class GameplayManager : MonoBehaviour
     }
 
     [Header("Order Pad")]
-    [SerializeField] private Button[] buttonsOrder;
+    [SerializeField]
+    private Button[] buttonsOrder;
 
     [Header("Gameplay Panels")]
-    [SerializeField] private GameObject panelOrder;
-    [SerializeField] private GameObject panelMounting;
-    [SerializeField] private GameObject panelPackaging;
-    [SerializeField] private GameObject panelRoutes;
-    [SerializeField] private GameObject panelDelivery;
+    [SerializeField]
+    private GameObject panelOrder;
+
+    [SerializeField]
+    private GameObject panelMounting;
+
+    [SerializeField]
+    private GameObject panelPackaging;
+
+    [SerializeField]
+    private GameObject panelRoutes;
+
+    [SerializeField]
+    private GameObject panelDelivery;
 
     [Header("Final Panels")]
-    [SerializeField] private GameObject panelResult;
-    [SerializeField] private GameObject panelVictory;
+    [SerializeField]
+    private GameObject panelResult;
+
+    [SerializeField]
+    private GameObject panelVictory;
 
     [Header("Evaluation")]
     [SerializeField]
     private CustomerEvaluationManager evaluationManager;
 
     [Header("Daily Report")]
-    [SerializeField] private TextMeshProUGUI textoDia;
+    [SerializeField]
+    private TextMeshProUGUI textoDia;
+
     [SerializeField]
     private TextMeshProUGUI textoAvaliacoesPositivas;
+
     [SerializeField]
     private TextMeshProUGUI textoOtimizacaoRotas;
+
     [SerializeField]
     private TextMeshProUGUI textoAvisos;
 
     [Header("Game Rules")]
-    [SerializeField] private int entregasPorDia = 3;
+    [SerializeField]
+    private int entregasPorDia = 3;
+
     [SerializeField]
     private int metaAvaliacoesPositivas = 10;
 
     [Header("Reset dos Sistemas")]
-    [SerializeField] private PackagingManager packagingManager;
+    [SerializeField]
+    private PackagingManager packagingManager;
+
     [SerializeField]
     private RouteDrawingManager routeDrawingManager;
-    [SerializeField] private MountingManager mountingManager;
+
+    [SerializeField]
+    private MountingManager mountingManager;
+
     [SerializeField]
     private DeliveryScreenManager deliveryScreenManager;
 
@@ -91,12 +115,13 @@ public class GameplayManager : MonoBehaviour
 
     private void Start()
     {
-        // Evita que uma pausa da cena anterior
-        // deixe o Gameplay congelado.
         Time.timeScale = 1f;
 
         if (painelMenuOpcoes != null)
             painelMenuOpcoes.SetActive(false);
+
+        if (panelVictory != null)
+            panelVictory.SetActive(false);
 
         ShowOrderPad();
 
@@ -106,23 +131,23 @@ public class GameplayManager : MonoBehaviour
             {
                 int index = i;
 
-                if (buttonsOrder[i] != null)
+                if (buttonsOrder[i] == null)
+                    continue;
+
+                Button botao = buttonsOrder[i];
+
+                // Som de papel apenas no hover.
+                if (botao.GetComponent<SomHoverPapel>() == null)
                 {
-                    Button botao = buttonsOrder[i];
-
-                    // Som dos papeis somente no hover.
-                    if (botao.GetComponent<SomHoverPapel>() == null)
-                    {
-                        botao.gameObject.AddComponent<SomHoverPapel>();
-                    }
-
-                    botao.onClick.AddListener(
-                        () => SelectOrder(index));
+                    botao.gameObject.AddComponent<SomHoverPapel>();
                 }
+
+                botao.onClick.AddListener(
+                    () => SelectOrder(index)
+                );
             }
         }
 
-        // Recupera um progresso salvo, se existir.
         RestaurarProgresso();
     }
 
@@ -136,8 +161,9 @@ public class GameplayManager : MonoBehaviour
         if (panelMounting != null)
             panelMounting.SetActive(true);
 
-        // O som de papel continua no hover.
-        Debug.Log("Pedido selecionado: " + (index + 1));
+        Debug.Log(
+            "Pedido selecionado: " + (index + 1)
+        );
     }
 
     private void ShowOrderPad()
@@ -163,7 +189,6 @@ public class GameplayManager : MonoBehaviour
         SelectedOrderIndex = -1;
     }
 
-    // Chamado ao continuar apos a avaliacao.
     public void RegistrarAvaliacao()
     {
         if (evaluationManager == null)
@@ -178,7 +203,7 @@ public class GameplayManager : MonoBehaviour
 
         entregasDoDia++;
 
-        // Apenas 5 estrelas contam para a meta secreta.
+        // Apenas cinco estrelas contam.
         if (nota == 5)
         {
             totalAvaliacoesPositivas++;
@@ -198,21 +223,16 @@ public class GameplayManager : MonoBehaviour
             entregasDoDia + "/" + entregasPorDia
         );
 
-        Debug.Log(
-            "Entregas com 5 estrelas acumuladas: " +
-            totalAvaliacoesPositivas + "/" +
-            metaAvaliacoesPositivas
-        );
-
-        // Guarda o progresso apos a entrega.
-        SalvarProgresso();
-
+        // A meta acumulada permanece invisivel
+        // para o jogador.
         if (totalAvaliacoesPositivas >=
             metaAvaliacoesPositivas)
         {
             MostrarVitoria();
             return;
         }
+
+        SalvarProgresso();
 
         if (entregasDoDia >= entregasPorDia)
         {
@@ -285,7 +305,6 @@ public class GameplayManager : MonoBehaviour
         if (deliveryScreenManager != null)
             deliveryScreenManager.ResetDelivery();
 
-        // Reinicia as animacoes dos papeis.
         if (buttonsOrder != null)
         {
             foreach (Button button in buttonsOrder)
@@ -301,7 +320,9 @@ public class GameplayManager : MonoBehaviour
             }
         }
 
-        Debug.Log("Todas as etapas foram reiniciadas.");
+        Debug.Log(
+            "Todas as etapas foram reiniciadas."
+        );
     }
 
     public void ComecarProximoDia()
@@ -316,11 +337,17 @@ public class GameplayManager : MonoBehaviour
 
         SalvarProgresso();
 
-        Debug.Log("Comecando o dia " + diaAtual);
+        Debug.Log(
+            "Comecando o dia " + diaAtual
+        );
     }
 
     private void MostrarVitoria()
     {
+        // Vitoria encerra a partida.
+        // O botao Continuar nao deve aparecer.
+        ApagarProgressoSalvo();
+
         if (panelOrder != null)
             panelOrder.SetActive(false);
 
@@ -346,7 +373,7 @@ public class GameplayManager : MonoBehaviour
             .TocarComemoracaoVitoria();
 
         Debug.Log(
-            "VITORIA! Meta de avaliacoes positivas alcancada."
+            "VITORIA! Partida encerrada."
         );
     }
 
@@ -357,7 +384,8 @@ public class GameplayManager : MonoBehaviour
 
         Debug.Log(
             $"Pedido perdido! " +
-            $"Pedidos do dia: {entregasDoDia}/{entregasPorDia}"
+            $"Pedidos do dia: " +
+            $"{entregasDoDia}/{entregasPorDia}"
         );
 
         SalvarProgresso();
@@ -384,7 +412,8 @@ public class GameplayManager : MonoBehaviour
         if (painelMenuOpcoes == null)
         {
             Debug.LogError(
-                "GameplayManager: painel de opcoes nao atribuido!",
+                "GameplayManager: painel de opcoes " +
+                "nao atribuido!",
                 this
             );
             return;
@@ -407,8 +436,11 @@ public class GameplayManager : MonoBehaviour
         if (painelMenuOpcoes != null)
             painelMenuOpcoes.SetActive(false);
 
-        if (menuOpcoesAberto && pausarJogoAoAbrirMenu)
+        if (menuOpcoesAberto &&
+            pausarJogoAoAbrirMenu)
+        {
             Time.timeScale = escalaTempoAntesMenu;
+        }
 
         menuOpcoesAberto = false;
     }
@@ -418,14 +450,15 @@ public class GameplayManager : MonoBehaviour
         // Salva antes de trocar de cena.
         SalvarProgresso();
 
-        // Remove a pausa para nao congelar o menu.
         FecharMenuOpcoes();
+
         Time.timeScale = 1f;
 
         if (string.IsNullOrEmpty(cenaMenuPrincipal))
         {
             Debug.LogError(
-                "Nome da cena MenuPrincipal nao configurado!",
+                "Nome da cena MenuPrincipal " +
+                "nao configurado!",
                 this
             );
             return;
@@ -445,17 +478,24 @@ public class GameplayManager : MonoBehaviour
             versao = 1,
             diaAtual = diaAtual,
             entregasDoDia = entregasDoDia,
+
             totalAvaliacoesPositivas =
                 totalAvaliacoesPositivas,
+
             avaliacoesPositivasDia =
                 avaliacoesPositivasDia,
+
             avaliacoesNegativasDoDia =
                 avaliacoesNegativasDoDia
         };
 
         string json = JsonUtility.ToJson(dados);
 
-        PlayerPrefs.SetString(ChaveSalvamento, json);
+        PlayerPrefs.SetString(
+            ChaveSalvamento,
+            json
+        );
+
         PlayerPrefs.Save();
 
         Debug.Log(
@@ -466,7 +506,8 @@ public class GameplayManager : MonoBehaviour
 
     private void RestaurarProgresso()
     {
-        if (!TentarLerProgresso(out DadosSalvamento dados))
+        if (!TentarLerProgresso(
+            out DadosSalvamento dados))
         {
             Debug.Log(
                 "LogiVery: iniciando sem progresso salvo."
@@ -474,7 +515,10 @@ public class GameplayManager : MonoBehaviour
             return;
         }
 
-        diaAtual = Mathf.Max(1, dados.diaAtual);
+        diaAtual = Mathf.Max(
+            1,
+            dados.diaAtual
+        );
 
         entregasDoDia = Mathf.Clamp(
             dados.entregasDoDia,
@@ -499,8 +543,7 @@ public class GameplayManager : MonoBehaviour
             entregasDoDia
         );
 
-        // Um pedido interrompido recomeça na
-        // selecao, sem ser contado como perdido.
+        // Pedidos interrompidos recomeçam na seleção.
         ReiniciarEtapas();
 
         if (totalAvaliacoesPositivas >=
@@ -542,9 +585,10 @@ public class GameplayManager : MonoBehaviour
 
         try
         {
-            dados = JsonUtility.FromJson<DadosSalvamento>(
-                json
-            );
+            dados =
+                JsonUtility.FromJson<DadosSalvamento>(
+                    json
+                );
 
             if (dados == null ||
                 dados.versao != 1 ||
@@ -591,7 +635,8 @@ public class GameplayManager : MonoBehaviour
 
     private void OnDestroy()
     {
-        if (menuOpcoesAberto && pausarJogoAoAbrirMenu)
+        if (menuOpcoesAberto &&
+            pausarJogoAoAbrirMenu)
         {
             Time.timeScale = escalaTempoAntesMenu;
         }

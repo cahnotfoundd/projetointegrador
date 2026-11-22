@@ -45,7 +45,8 @@ public class LogiVeryEfeitosSonoros : MonoBehaviour
     [Range(0f, 1f)]
     [SerializeField] private float volumeEfeitos = 0.65f;
 
-    [SerializeField] private bool somAutomaticoNosBotoes = true;
+    [SerializeField]
+    private bool somAutomaticoNosBotoes = true;
 
     private readonly Dictionary<string, AudioSource> fontes =
         new Dictionary<string, AudioSource>();
@@ -102,13 +103,18 @@ public class LogiVeryEfeitosSonoros : MonoBehaviour
                 "Objeto de som nao encontrado: " + caminho,
                 this
             );
+
             return null;
         }
 
-        AudioSource fonte = objeto.GetComponent<AudioSource>();
+        AudioSource fonte =
+            objeto.GetComponent<AudioSource>();
 
         if (fonte == null)
-            fonte = objeto.gameObject.AddComponent<AudioSource>();
+        {
+            fonte = objeto.gameObject
+                .AddComponent<AudioSource>();
+        }
 
         fonte.playOnAwake = false;
         fonte.spatialBlend = 0f;
@@ -139,7 +145,9 @@ public class LogiVeryEfeitosSonoros : MonoBehaviour
         fonte.PlayOneShot(som, volumeEfeitos);
     }
 
-    private void IniciarLoop(string caminho, AudioClip arquivo)
+    private void IniciarLoop(
+        string caminho,
+        AudioClip arquivo)
     {
         AudioSource fonte = ObterFonte(caminho);
 
@@ -183,10 +191,12 @@ public class LogiVeryEfeitosSonoros : MonoBehaviour
 
     public void VincularBotoes()
     {
-        Button[] todosBotoes = FindObjectsByType<Button>(
-            FindObjectsInactive.Include,
-            FindObjectsSortMode.None
-        );
+        // Unity 6.4: usa a sobrecarga atual,
+        // sem FindObjectsSortMode.
+        Button[] todosBotoes =
+            FindObjectsByType<Button>(
+                FindObjectsInactive.Include
+            );
 
         foreach (Button botao in todosBotoes)
         {
@@ -273,7 +283,10 @@ public class LogiVeryEfeitosSonoros : MonoBehaviour
 
     public void TocarComemoracaoVitoria()
     {
-        Tocar("ComemoracaoVitoria", comemoracaoVitoria);
+        Tocar(
+            "ComemoracaoVitoria",
+            comemoracaoVitoria
+        );
     }
 
     // PRODUTOS
@@ -285,12 +298,18 @@ public class LogiVeryEfeitosSonoros : MonoBehaviour
 
     public void TocarCadernoAgenda()
     {
-        Tocar("Produtos/CadernoAgenda", cadernoAgenda);
+        Tocar(
+            "Produtos/CadernoAgenda",
+            cadernoAgenda
+        );
     }
 
     public void TocarKitMarcadores()
     {
-        Tocar("Produtos/KitMarcadores", kitMarcadores);
+        Tocar(
+            "Produtos/KitMarcadores",
+            kitMarcadores
+        );
     }
 
     public void TocarPostIt()
