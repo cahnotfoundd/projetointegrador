@@ -20,8 +20,11 @@ public class DeliveryScreenManager : MonoBehaviour
     [SerializeField] private GameObject painelAvaliacaoCliente;
 
     [Header("Tempos da finalizacao")]
-    [SerializeField] private float tempoAntesDaAnimacao = 5f;
-    [SerializeField] private float tempoAnimacaoCliente = 5f;
+    [SerializeField]
+    private float tempoAntesDaAnimacao = 5f;
+
+    [SerializeField]
+    private float tempoAnimacaoCliente = 5f;
 
     [Header("Animacao do transito")]
     [SerializeField] private Animator animatorTransito;
@@ -30,10 +33,12 @@ public class DeliveryScreenManager : MonoBehaviour
     [SerializeField] private Animator animatorCliente;
 
     [Header("Continuar Avaliacao")]
-    [SerializeField] private UnityEvent aoContinuarAvaliacao;
+    [SerializeField]
+    private UnityEvent aoContinuarAvaliacao;
 
     [Header("Gerenciador de Avaliacao")]
-    [SerializeField] private CustomerEvaluationManager evaluationManager;
+    [SerializeField]
+    private CustomerEvaluationManager evaluationManager;
 
     [Header("Reset do Labirinto")]
     [SerializeField] private MazePlayerManager mazePlayer;
@@ -49,10 +54,11 @@ public class DeliveryScreenManager : MonoBehaviour
     [SerializeField] private TMP_Text textoMensagemNotificacao;
 
     [Header("Duracao das notificacoes")]
-    [SerializeField] private float duracaoMinimaNotificacao = 2f;
-    [SerializeField] private float duracaoMaximaNotificacao = 3f;
+    [SerializeField]
+    private float duracaoMinimaNotificacao = 2f;
 
-    // ESTADOS DA ENTREGA
+    [SerializeField]
+    private float duracaoMaximaNotificacao = 3f;
 
     private bool viagemIniciada;
     private bool viagemAtiva;
@@ -61,11 +67,12 @@ public class DeliveryScreenManager : MonoBehaviour
     private bool transicaoClienteIniciada;
 
     private bool desafioEmAndamento;
-
     private bool houveMinigameNaViagem;
     private bool ultimoMinigameFoiLabirinto;
 
     private bool avisoDeEventoEmAndamento;
+    private bool avisoEventoLabirinto;
+    private float tempoRestanteAvisoEvento;
 
     private bool problemaPendente;
     private bool problemaResolvido;
@@ -74,18 +81,11 @@ public class DeliveryScreenManager : MonoBehaviour
     private float velocidadeOriginalAnimacao = 1f;
     private float velocidadeOriginalAnimacaoCliente = 1f;
 
-    // EVENTOS ALEATORIOS
-
     private readonly List<float> momentosEventos =
         new List<float>();
 
     private int proximoEvento;
-
-    // PONTUACAO DA ENTREGA
-
     private int saldoAvaliacao;
-
-    // NOTIFICACOES
 
     private bool notificacaoVisivel;
     private float tempoRestanteNotificacao;
@@ -97,12 +97,21 @@ public class DeliveryScreenManager : MonoBehaviour
     private readonly List<float> momentosNotificacoes =
         new List<float>();
 
+    // 0 = viagem ou fim de viagem
+    // 1 = aguardando animacao
+    // 2 = animacao em andamento
+    // 3 = avaliacao aberta
+    private int faseFinalizacao;
+    private float tempoRestanteFinalizacao;
+
     private struct MensagemEntrega
     {
         public string titulo;
         public string mensagem;
 
-        public MensagemEntrega(string titulo, string mensagem)
+        public MensagemEntrega(
+            string titulo,
+            string mensagem)
         {
             this.titulo = titulo;
             this.mensagem = mensagem;
@@ -115,52 +124,42 @@ public class DeliveryScreenManager : MonoBehaviour
             "CENTRAL LOGIVERY",
             "Tudo certo! Estamos acompanhando a entrega."
         ),
-
         new MensagemEntrega(
             "MENSAGEM DO ENTREGADOR",
             "Mais um trecho concluido! Seguimos viagem."
         ),
-
         new MensagemEntrega(
             "STATUS DA ENCOMENDA",
             "Pedido seguro e a caminho do destino!"
         ),
-
         new MensagemEntrega(
             "CENTRAL DE OPERACOES",
             "Monitoramento ativo. Tudo sob controle!"
         ),
-
         new MensagemEntrega(
             "TRANSITO URBANO",
             "O movimento esta intenso por aqui!"
         ),
-
         new MensagemEntrega(
             "MENSAGEM DO ENTREGADOR",
             "Central, estou avancando pela cidade!"
         ),
-
         new MensagemEntrega(
             "ATUALIZACAO DO PEDIDO",
             "O cliente esta acompanhando a entrega."
         ),
-
         new MensagemEntrega(
             "DICA LOGIVERY",
             "Uma boa rota faz toda a diferenca!"
         ),
-
         new MensagemEntrega(
             "CENTRAL LOGIVERY",
             "Mais uma entrega em andamento!"
         ),
-
         new MensagemEntrega(
             "STATUS DA VIAGEM",
             "Nenhuma ocorrencia importante no momento."
         ),
-
         new MensagemEntrega(
             "CENTRAL LOGIVERY",
             "Estamos cada vez mais proximos do destino!"
@@ -171,7 +170,8 @@ public class DeliveryScreenManager : MonoBehaviour
     {
         if (animatorTransito != null)
         {
-            velocidadeOriginalAnimacao = animatorTransito.speed;
+            velocidadeOriginalAnimacao =
+                animatorTransito.speed;
         }
 
         if (animatorCliente != null)
@@ -186,7 +186,6 @@ public class DeliveryScreenManager : MonoBehaviour
         if (painelEntrega == null)
             return;
 
-        // Detecta a saida da tela de entrega.
         if (!painelEntrega.activeInHierarchy)
         {
             if (viagemIniciada)
@@ -198,16 +197,12 @@ public class DeliveryScreenManager : MonoBehaviour
             return;
         }
 
-        // Inicia quando a tela de entrega abre.
         if (!viagemIniciada)
-        {
             IniciarViagem();
-        }
 
         if (!viagemAtiva)
             return;
 
-        // Atalho temporario T: abre o labirinto.
         if (Keyboard.current != null &&
             Keyboard.current.tKey.wasPressedThisFrame &&
             !desafioEmAndamento &&
@@ -217,7 +212,6 @@ public class DeliveryScreenManager : MonoBehaviour
             MostrarDecisao();
         }
 
-        // Atalho temporario K: conclui o labirinto.
         if (Keyboard.current != null &&
             Keyboard.current.kKey.wasPressedThisFrame &&
             painelLabirinto != null &&
@@ -226,7 +220,6 @@ public class DeliveryScreenManager : MonoBehaviour
             ConcluirLabirinto();
         }
 
-        // O tempo nao avanca durante os desafios.
         if (viagemPausada)
             return;
 
@@ -234,11 +227,11 @@ public class DeliveryScreenManager : MonoBehaviour
 
         tempoDecorrido += delta;
 
-        // Eventos importantes tem prioridade.
         if (!desafioEmAndamento &&
             !avisoDeEventoEmAndamento &&
             proximoEvento < momentosEventos.Count &&
-            tempoDecorrido >= momentosEventos[proximoEvento])
+            tempoDecorrido >=
+            momentosEventos[proximoEvento])
         {
             SortearMinigame();
             return;
@@ -247,9 +240,7 @@ public class DeliveryScreenManager : MonoBehaviour
         AtualizarNotificacoes(delta);
 
         if (tempoDecorrido >= duracaoViagem)
-        {
             FinalizarViagem();
-        }
     }
 
     public void IniciarViagem()
@@ -273,7 +264,6 @@ public class DeliveryScreenManager : MonoBehaviour
                 "DeliveryScreenManager: faltam referencias!",
                 this
             );
-
             return;
         }
 
@@ -287,6 +277,9 @@ public class DeliveryScreenManager : MonoBehaviour
         houveMinigameNaViagem = false;
         ultimoMinigameFoiLabirinto = false;
         avisoDeEventoEmAndamento = false;
+        avisoEventoLabirinto = false;
+        tempoRestanteAvisoEvento = 0f;
+
         problemaPendente = false;
         problemaResolvido = false;
 
@@ -298,6 +291,9 @@ public class DeliveryScreenManager : MonoBehaviour
 
         notificacaoVisivel = false;
         tempoRestanteNotificacao = 0f;
+
+        faseFinalizacao = 0;
+        tempoRestanteFinalizacao = 0f;
 
         painelDecisao.SetActive(false);
         painelLabirinto.SetActive(false);
@@ -311,7 +307,6 @@ public class DeliveryScreenManager : MonoBehaviour
         if (painelAvaliacaoCliente != null)
             painelAvaliacaoCliente.SetActive(false);
 
-        // Reativa a animacao do transito.
         if (animatorTransito != null)
         {
             animatorTransito.speed =
@@ -324,17 +319,15 @@ public class DeliveryScreenManager : MonoBehaviour
         Debug.Log("Nova viagem LogiVery iniciada!");
     }
 
-    // PREPARACAO DOS EVENTOS
-
     private void PrepararEventos()
     {
         momentosEventos.Clear();
         proximoEvento = 0;
 
-        // Tres ou quatro desafios por viagem.
         int quantidade = Random.Range(3, 5);
 
-        float intervalo = duracaoViagem / (quantidade + 1f);
+        float intervalo =
+            duracaoViagem / (quantidade + 1f);
 
         for (int i = 1; i <= quantidade; i++)
         {
@@ -351,7 +344,9 @@ public class DeliveryScreenManager : MonoBehaviour
             momentosEventos.Add(momento);
         }
 
-        Debug.Log("Eventos programados: " + quantidade);
+        Debug.Log(
+            "Eventos programados: " + quantidade
+        );
     }
 
     private void SortearMinigame()
@@ -367,25 +362,30 @@ public class DeliveryScreenManager : MonoBehaviour
 
         if (!houveMinigameNaViagem)
         {
-            // Primeiro desafio: aleatorio.
             escolherLabirinto = Random.value < 0.5f;
         }
         else
         {
-            // Demais desafios: alternancia obrigatoria.
-            escolherLabirinto = !ultimoMinigameFoiLabirinto;
+            escolherLabirinto =
+                !ultimoMinigameFoiLabirinto;
         }
 
+        tempoRestanteAvisoEvento = 2f;
+
         StartCoroutine(
-            AvisarEIniciarMinigame(escolherLabirinto)
+            AvisarEIniciarMinigame(
+                escolherLabirinto,
+                false
+            )
         );
     }
 
-    private IEnumerator AvisarEIniciarMinigame(bool labirinto)
+    private IEnumerator AvisarEIniciarMinigame(
+        bool labirinto,
+        bool restaurando)
     {
         avisoDeEventoEmAndamento = true;
-
-        // Pausa o tempo invisivel da viagem.
+        avisoEventoLabirinto = labirinto;
         viagemPausada = true;
 
         OcultarNotificacao();
@@ -410,17 +410,25 @@ public class DeliveryScreenManager : MonoBehaviour
         {
             painelNotificacao.SetActive(true);
 
-            // AUDIO: nova notificacao de alerta.
-            LogiVeryEfeitosSonoros.Instancia?
-                .TocarNotificacoes();
+            if (!restaurando)
+            {
+                LogiVeryEfeitosSonoros.Instancia?
+                    .TocarNotificacoes();
+            }
         }
 
-        yield return new WaitForSeconds(2f);
+        while (tempoRestanteAvisoEvento > 0f)
+        {
+            tempoRestanteAvisoEvento = Mathf.Max(
+                0f,
+                tempoRestanteAvisoEvento - Time.deltaTime
+            );
+
+            yield return null;
+        }
 
         if (painelNotificacao != null)
-        {
             painelNotificacao.SetActive(false);
-        }
 
         if (!viagemAtiva ||
             painelEntrega == null ||
@@ -433,16 +441,10 @@ public class DeliveryScreenManager : MonoBehaviour
         avisoDeEventoEmAndamento = false;
 
         if (labirinto)
-        {
             MostrarDecisao();
-        }
         else
-        {
             AbrirSemaforo();
-        }
     }
-
-    // LABIRINTO
 
     public void MostrarDecisao()
     {
@@ -469,7 +471,9 @@ public class DeliveryScreenManager : MonoBehaviour
 
         painelDecisao.SetActive(true);
 
-        Debug.Log("Evento de labirinto iniciado!");
+        Debug.Log(
+            "Evento de labirinto iniciado!"
+        );
     }
 
     public void AceitarLabirinto()
@@ -493,7 +497,9 @@ public class DeliveryScreenManager : MonoBehaviour
 
         Physics2D.SyncTransforms();
 
-        Debug.Log("Labirinto aberto e reiniciado!");
+        Debug.Log(
+            "Labirinto aberto e reiniciado!"
+        );
     }
 
     public void RecusarLabirinto()
@@ -535,12 +541,12 @@ public class DeliveryScreenManager : MonoBehaviour
 
         saldoAvaliacao += 1;
 
-        Debug.Log("Labirinto concluido: +1 ponto.");
+        Debug.Log(
+            "Labirinto concluido: +1 ponto."
+        );
 
         EncerrarDesafio();
     }
-
-    // SEMAFORO
 
     public void AbrirSemaforo()
     {
@@ -567,7 +573,9 @@ public class DeliveryScreenManager : MonoBehaviour
 
         painelSemaforo.SetActive(true);
 
-        Debug.Log("Minigame Onda Verde iniciado!");
+        Debug.Log(
+            "Minigame Onda Verde iniciado!"
+        );
     }
 
     public void ConcluirSemaforo(bool sucesso)
@@ -588,18 +596,22 @@ public class DeliveryScreenManager : MonoBehaviour
         if (sucesso)
         {
             saldoAvaliacao += 1;
-            Debug.Log("Semaforo correto: +1 ponto.");
+
+            Debug.Log(
+                "Semaforo correto: +1 ponto."
+            );
         }
         else
         {
             saldoAvaliacao -= 1;
-            Debug.Log("Semaforo incorreto: -1 ponto.");
+
+            Debug.Log(
+                "Semaforo incorreto: -1 ponto."
+            );
         }
 
         EncerrarDesafio();
     }
-
-    // CONTROLE DOS DESAFIOS
 
     private void EncerrarDesafio()
     {
@@ -607,7 +619,8 @@ public class DeliveryScreenManager : MonoBehaviour
         RetomarViagem();
 
         Debug.Log(
-            "Viagem retomada. Saldo: " + saldoAvaliacao
+            "Viagem retomada. Saldo: " +
+            saldoAvaliacao
         );
     }
 
@@ -632,12 +645,9 @@ public class DeliveryScreenManager : MonoBehaviour
         if (notificacaoVisivel &&
             painelNotificacao != null)
         {
-            // Apenas reexibe, sem repetir o som.
             painelNotificacao.SetActive(true);
         }
     }
-
-    // NOTIFICACOES
 
     private void PrepararNotificacoes()
     {
@@ -649,7 +659,6 @@ public class DeliveryScreenManager : MonoBehaviour
         tempoRestanteNotificacao = 0f;
 
         int ultimaMensagem = -1;
-
         float momento = 0.5f;
 
         while (momento < duracaoViagem - 1f)
@@ -690,7 +699,8 @@ public class DeliveryScreenManager : MonoBehaviour
         }
 
         if (!notificacaoVisivel &&
-            proximaNotificacao < momentosNotificacoes.Count &&
+            proximaNotificacao <
+            momentosNotificacoes.Count &&
             tempoDecorrido >=
             momentosNotificacoes[proximaNotificacao])
         {
@@ -701,12 +711,17 @@ public class DeliveryScreenManager : MonoBehaviour
 
     private void MostrarNotificacao()
     {
-        int indice = mensagensSorteadas[proximaNotificacao];
+        int indice =
+            mensagensSorteadas[proximaNotificacao];
 
-        MensagemEntrega mensagem = bancoMensagens[indice];
+        MensagemEntrega mensagem =
+            bancoMensagens[indice];
 
-        textoTituloNotificacao.text = mensagem.titulo;
-        textoMensagemNotificacao.text = mensagem.mensagem;
+        textoTituloNotificacao.text =
+            mensagem.titulo;
+
+        textoMensagemNotificacao.text =
+            mensagem.mensagem;
 
         float minimo = Mathf.Max(
             0.5f,
@@ -728,9 +743,9 @@ public class DeliveryScreenManager : MonoBehaviour
             Random.Range(minimo, maximo);
 
         notificacaoVisivel = true;
+
         painelNotificacao.SetActive(true);
 
-        // AUDIO: somente quando uma nova mensagem aparece.
         LogiVeryEfeitosSonoros.Instancia?
             .TocarNotificacoes();
     }
@@ -743,8 +758,6 @@ public class DeliveryScreenManager : MonoBehaviour
         if (painelNotificacao != null)
             painelNotificacao.SetActive(false);
     }
-
-    // RESULTADO DA ENTREGA
 
     public int CalcularNotaFinal(int notaBase)
     {
@@ -770,8 +783,6 @@ public class DeliveryScreenManager : MonoBehaviour
         );
     }
 
-    // CHEGADA AO DESTINO
-
     private void FinalizarViagem()
     {
         if (viagemFinalizada || desafioEmAndamento)
@@ -783,17 +794,14 @@ public class DeliveryScreenManager : MonoBehaviour
 
         OcultarNotificacao();
 
-        // Congela a animacao do transito.
         if (animatorTransito != null)
-        {
             animatorTransito.speed = 0f;
-        }
 
         if (painelFimViagem != null)
             painelFimViagem.SetActive(true);
 
         Debug.Log(
-            "Destino alcancado! Saldo da entrega: " +
+            "Destino alcancado! Saldo: " +
             saldoAvaliacao
         );
     }
@@ -811,69 +819,102 @@ public class DeliveryScreenManager : MonoBehaviour
         if (painelFimViagem != null)
             painelFimViagem.SetActive(false);
 
-        StartCoroutine(FluxoPosLabirinto());
-    }
+        faseFinalizacao = 1;
 
-    private IEnumerator FluxoPosLabirinto()
-    {
-        // Preserva a espera antes da animacao.
-        yield return new WaitForSeconds(
+        tempoRestanteFinalizacao = Mathf.Max(
+            0f,
             tempoAntesDaAnimacao
         );
 
-        if (painelAnimacaoCliente != null)
+        StartCoroutine(
+            FluxoPosLabirinto(false)
+        );
+    }
+
+    private IEnumerator EsperarFase()
+    {
+        while (tempoRestanteFinalizacao > 0f)
         {
-            painelAnimacaoCliente.SetActive(true);
+            tempoRestanteFinalizacao = Mathf.Max(
+                0f,
+                tempoRestanteFinalizacao -
+                Time.deltaTime
+            );
+
+            yield return null;
         }
+    }
 
-        // Reinicia a animacao desde o primeiro frame.
-        if (animatorCliente != null)
+    private IEnumerator FluxoPosLabirinto(
+        bool restaurando)
+    {
+        if (faseFinalizacao <= 1)
         {
-            animatorCliente.Rebind();
+            faseFinalizacao = 1;
 
-            animatorCliente.speed =
-                velocidadeOriginalAnimacaoCliente;
+            yield return StartCoroutine(
+                EsperarFase()
+            );
 
-            animatorCliente.Play(0, 0, 0f);
-            animatorCliente.Update(0f);
-        }
+            faseFinalizacao = 2;
 
-        // AUDIO: toca somente quando a animacao comeca.
-        // Nao toca quando PanelEntrega e aberto.
-        if (painelAnimacaoCliente != null &&
-            painelAnimacaoCliente.activeInHierarchy)
-        {
+            tempoRestanteFinalizacao = Mathf.Max(
+                0f,
+                tempoAnimacaoCliente
+            );
+
+            if (painelAnimacaoCliente != null)
+                painelAnimacaoCliente.SetActive(true);
+
+            if (animatorCliente != null)
+            {
+                animatorCliente.Rebind();
+
+                animatorCliente.speed =
+                    velocidadeOriginalAnimacaoCliente;
+
+                animatorCliente.Play(0, 0, 0f);
+                animatorCliente.Update(0f);
+            }
+
             LogiVeryEfeitosSonoros.Instancia?
                 .TocarAnimacaoCliente();
         }
 
-        yield return new WaitForSeconds(
-            tempoAnimacaoCliente
-        );
-
-        // Congela no ultimo frame.
-        if (animatorCliente != null)
+        if (faseFinalizacao == 2)
         {
-            animatorCliente.Play(0, 0, 0.999f);
-            animatorCliente.Update(0f);
-            animatorCliente.speed = 0f;
-        }
+            // Ao restaurar, a animacao ja foi
+            // posicionada no frame salvo.
+            yield return StartCoroutine(
+                EsperarFase()
+            );
 
-        // Abre a avaliacao com a cena congelada.
-        if (painelAvaliacaoCliente != null)
-        {
-            painelAvaliacaoCliente.SetActive(true);
-        }
+            if (animatorCliente != null)
+            {
+                animatorCliente.Play(
+                    0, 0, 0.999f
+                );
 
-        // Preserva a influencia dos minigames.
-        if (evaluationManager != null)
-        {
-            evaluationManager.ShowRandomNote(
-                ObterSaldoAvaliacao()
+                animatorCliente.Update(0f);
+                animatorCliente.speed = 0f;
+            }
+
+            faseFinalizacao = 3;
+
+            if (painelAvaliacaoCliente != null)
+                painelAvaliacaoCliente.SetActive(true);
+
+            if (evaluationManager != null)
+            {
+                evaluationManager.ShowRandomNote(
+                    ObterSaldoAvaliacao()
+                );
+            }
+
+            Debug.Log(
+                "Avaliacao do cliente aberta!"
             );
         }
-
-        Debug.Log("Avaliacao do cliente aberta!");
     }
 
     public void ContinuarAvaliacao()
@@ -886,10 +927,432 @@ public class DeliveryScreenManager : MonoBehaviour
 
         aoContinuarAvaliacao?.Invoke();
 
-        Debug.Log("Avaliacao concluida!");
+        Debug.Log(
+            "Avaliacao concluida!"
+        );
     }
 
-    // REINICIO
+    // ==========================================
+    // SALVAMENTO DA ENTREGA
+    // ==========================================
+
+    private static bool EstaAberto(GameObject obj)
+    {
+        return obj != null && obj.activeSelf;
+    }
+
+    private SemaforoMinigame EncontrarSemaforo()
+    {
+        if (painelSemaforo == null)
+            return null;
+
+        return painelSemaforo
+            .GetComponentInChildren<SemaforoMinigame>(
+                true
+            );
+    }
+
+    public void CapturarEstado(
+        LogiVerySaveManager.Dados dados)
+    {
+        if (dados == null)
+            return;
+
+        LogiVerySaveManager.Entrega salvo =
+            dados.entrega;
+
+        salvo.iniciada = viagemIniciada;
+        salvo.ativa = viagemAtiva;
+        salvo.pausada = viagemPausada;
+        salvo.finalizada = viagemFinalizada;
+
+        salvo.transicaoClienteIniciada =
+            transicaoClienteIniciada;
+
+        salvo.desafioEmAndamento =
+            desafioEmAndamento;
+
+        salvo.houveMinigame =
+            houveMinigameNaViagem;
+
+        salvo.ultimoFoiLabirinto =
+            ultimoMinigameFoiLabirinto;
+
+        salvo.avisoDeEvento =
+            avisoDeEventoEmAndamento;
+
+        salvo.avisoEventoLabirinto =
+            avisoEventoLabirinto;
+
+        salvo.tempoRestanteAvisoEvento =
+            tempoRestanteAvisoEvento;
+
+        salvo.problemaPendente =
+            problemaPendente;
+
+        salvo.problemaResolvido =
+            problemaResolvido;
+
+        salvo.tempoDecorrido = tempoDecorrido;
+        salvo.saldoAvaliacao = saldoAvaliacao;
+        salvo.proximoEvento = proximoEvento;
+
+        salvo.momentosEventos =
+            new List<float>(momentosEventos);
+
+        salvo.proximaNotificacao =
+            proximaNotificacao;
+
+        salvo.notificacaoVisivel =
+            notificacaoVisivel;
+
+        salvo.tempoRestanteNotificacao =
+            tempoRestanteNotificacao;
+
+        salvo.mensagensSorteadas =
+            new List<int>(mensagensSorteadas);
+
+        salvo.momentosNotificacoes =
+            new List<float>(momentosNotificacoes);
+
+        salvo.tituloNotificacao =
+            textoTituloNotificacao != null
+                ? textoTituloNotificacao.text
+                : "";
+
+        salvo.mensagemNotificacao =
+            textoMensagemNotificacao != null
+                ? textoMensagemNotificacao.text
+                : "";
+
+        salvo.painelDecisao =
+            EstaAberto(painelDecisao);
+
+        salvo.painelLabirinto =
+            EstaAberto(painelLabirinto);
+
+        salvo.painelSemaforo =
+            EstaAberto(painelSemaforo);
+
+        salvo.painelFimViagem =
+            EstaAberto(painelFimViagem);
+
+        salvo.painelAnimacaoCliente =
+            EstaAberto(painelAnimacaoCliente);
+
+        salvo.painelAvaliacaoCliente =
+            EstaAberto(painelAvaliacaoCliente);
+
+        salvo.faseFinalizacao =
+            faseFinalizacao;
+
+        salvo.tempoRestanteFinalizacao =
+            tempoRestanteFinalizacao;
+
+        if (animatorCliente != null &&
+            animatorCliente.isActiveAndEnabled)
+        {
+            salvo.progressoAnimacaoCliente =
+                Mathf.Repeat(
+                    animatorCliente
+                    .GetCurrentAnimatorStateInfo(0)
+                    .normalizedTime,
+                    1f
+                );
+        }
+
+        if (mazePlayer != null)
+        {
+            Rigidbody2D rb =
+                mazePlayer.GetComponent<Rigidbody2D>();
+
+            dados.labirinto.posicaoJogador =
+                rb != null
+                    ? rb.position
+                    : (Vector2)mazePlayer.transform.position;
+        }
+
+        SemaforoMinigame semaforo =
+            EncontrarSemaforo();
+
+        if (semaforo != null &&
+            salvo.painelSemaforo)
+        {
+            semaforo.CapturarEstado(dados.semaforo);
+        }
+
+        if (evaluationManager != null)
+        {
+            dados.avaliacao.notaPedido =
+                evaluationManager.orderNote;
+
+            dados.avaliacao.notaEntrega =
+                evaluationManager.deliveryNote;
+        }
+    }
+
+    public void RestaurarEstado(
+        LogiVerySaveManager.Dados dados)
+    {
+        if (dados == null || dados.entrega == null)
+            return;
+
+        StopAllCoroutines();
+
+        LogiVerySaveManager.Entrega salvo =
+            dados.entrega;
+
+        viagemIniciada = salvo.iniciada;
+        viagemAtiva = salvo.ativa;
+        viagemPausada = salvo.pausada;
+        viagemFinalizada = salvo.finalizada;
+
+        transicaoClienteIniciada =
+            salvo.transicaoClienteIniciada;
+
+        desafioEmAndamento =
+            salvo.desafioEmAndamento;
+
+        houveMinigameNaViagem =
+            salvo.houveMinigame;
+
+        ultimoMinigameFoiLabirinto =
+            salvo.ultimoFoiLabirinto;
+
+        avisoDeEventoEmAndamento =
+            salvo.avisoDeEvento;
+
+        avisoEventoLabirinto =
+            salvo.avisoEventoLabirinto;
+
+        tempoRestanteAvisoEvento = Mathf.Max(
+            0f,
+            salvo.tempoRestanteAvisoEvento
+        );
+
+        problemaPendente = salvo.problemaPendente;
+        problemaResolvido = salvo.problemaResolvido;
+
+        tempoDecorrido = Mathf.Max(
+            0f,
+            salvo.tempoDecorrido
+        );
+
+        saldoAvaliacao = salvo.saldoAvaliacao;
+        proximoEvento = salvo.proximoEvento;
+
+        momentosEventos.Clear();
+
+        if (salvo.momentosEventos != null)
+        {
+            momentosEventos.AddRange(
+                salvo.momentosEventos
+            );
+        }
+
+        proximaNotificacao =
+            salvo.proximaNotificacao;
+
+        notificacaoVisivel =
+            salvo.notificacaoVisivel;
+
+        tempoRestanteNotificacao =
+            salvo.tempoRestanteNotificacao;
+
+        mensagensSorteadas.Clear();
+
+        if (salvo.mensagensSorteadas != null)
+        {
+            mensagensSorteadas.AddRange(
+                salvo.mensagensSorteadas
+            );
+        }
+
+        momentosNotificacoes.Clear();
+
+        if (salvo.momentosNotificacoes != null)
+        {
+            momentosNotificacoes.AddRange(
+                salvo.momentosNotificacoes
+            );
+        }
+
+        faseFinalizacao =
+            salvo.faseFinalizacao;
+
+        tempoRestanteFinalizacao =
+            Mathf.Max(
+                0f,
+                salvo.tempoRestanteFinalizacao
+            );
+
+        if (textoTituloNotificacao != null)
+        {
+            textoTituloNotificacao.text =
+                salvo.tituloNotificacao ?? "";
+        }
+
+        if (textoMensagemNotificacao != null)
+        {
+            textoMensagemNotificacao.text =
+                salvo.mensagemNotificacao ?? "";
+        }
+
+        if (painelDecisao != null)
+            painelDecisao.SetActive(
+                salvo.painelDecisao
+            );
+
+        if (painelLabirinto != null)
+            painelLabirinto.SetActive(
+                salvo.painelLabirinto
+            );
+
+        if (painelSemaforo != null)
+            painelSemaforo.SetActive(
+                salvo.painelSemaforo
+            );
+
+        if (painelFimViagem != null)
+            painelFimViagem.SetActive(
+                salvo.painelFimViagem
+            );
+
+        if (painelAnimacaoCliente != null)
+        {
+            painelAnimacaoCliente.SetActive(
+                salvo.painelAnimacaoCliente
+            );
+        }
+
+        if (painelAvaliacaoCliente != null)
+        {
+            painelAvaliacaoCliente.SetActive(
+                salvo.painelAvaliacaoCliente
+            );
+        }
+
+        if (painelNotificacao != null)
+        {
+            painelNotificacao.SetActive(
+                salvo.notificacaoVisivel ||
+                salvo.avisoDeEvento
+            );
+        }
+
+        if (animatorTransito != null)
+        {
+            animatorTransito.speed =
+                viagemFinalizada
+                    ? 0f
+                    : velocidadeOriginalAnimacao;
+        }
+
+        // Restaura a posicao dentro do labirinto.
+        if (salvo.painelLabirinto)
+        {
+            if (mazeDestination != null)
+                mazeDestination.ResetDestination();
+
+            if (mazePlayer != null &&
+                dados.labirinto != null)
+            {
+                Rigidbody2D rb =
+                    mazePlayer.GetComponent<Rigidbody2D>();
+
+                if (rb != null)
+                {
+                    rb.linearVelocity = Vector2.zero;
+                    rb.angularVelocity = 0f;
+                    rb.position =
+                        dados.labirinto.posicaoJogador;
+                }
+
+                mazePlayer.transform.position =
+                    dados.labirinto.posicaoJogador;
+
+                Physics2D.SyncTransforms();
+            }
+        }
+
+        if (salvo.painelSemaforo)
+        {
+            SemaforoMinigame semaforo =
+                EncontrarSemaforo();
+
+            if (semaforo != null)
+            {
+                semaforo.RestaurarEstado(
+                    dados.semaforo
+                );
+            }
+        }
+
+        // Recupera o aviso antes de um minigame.
+        if (avisoDeEventoEmAndamento)
+        {
+            StartCoroutine(
+                AvisarEIniciarMinigame(
+                    avisoEventoLabirinto,
+                    true
+                )
+            );
+        }
+
+        // Recupera a espera e a animacao do cliente.
+        if (faseFinalizacao == 1 ||
+            faseFinalizacao == 2)
+        {
+            if (faseFinalizacao == 2 &&
+                animatorCliente != null &&
+                painelAnimacaoCliente != null &&
+                painelAnimacaoCliente.activeInHierarchy)
+            {
+                animatorCliente.speed =
+                    velocidadeOriginalAnimacaoCliente;
+
+                animatorCliente.Play(
+                    0,
+                    0,
+                    Mathf.Clamp01(
+                        salvo.progressoAnimacaoCliente
+                    )
+                );
+
+                animatorCliente.Update(0f);
+            }
+
+            StartCoroutine(
+                FluxoPosLabirinto(true)
+            );
+        }
+        else if (faseFinalizacao == 3)
+        {
+            if (animatorCliente != null &&
+                painelAnimacaoCliente != null &&
+                painelAnimacaoCliente.activeInHierarchy)
+            {
+                animatorCliente.Play(
+                    0, 0, 0.999f
+                );
+
+                animatorCliente.Update(0f);
+                animatorCliente.speed = 0f;
+            }
+
+            if (evaluationManager != null)
+            {
+                evaluationManager.ShowRandomNote(
+                    ObterSaldoAvaliacao()
+                );
+            }
+        }
+
+        Debug.Log(
+            "LogiVery: viagem restaurada " +
+            "no segundo " + tempoDecorrido
+        );
+    }
 
     private void LimparEstadoViagem()
     {
@@ -900,6 +1363,12 @@ public class DeliveryScreenManager : MonoBehaviour
         transicaoClienteIniciada = false;
 
         desafioEmAndamento = false;
+        houveMinigameNaViagem = false;
+        ultimoMinigameFoiLabirinto = false;
+
+        avisoDeEventoEmAndamento = false;
+        avisoEventoLabirinto = false;
+        tempoRestanteAvisoEvento = 0f;
 
         problemaPendente = false;
         problemaResolvido = false;
@@ -912,6 +1381,9 @@ public class DeliveryScreenManager : MonoBehaviour
 
         notificacaoVisivel = false;
         tempoRestanteNotificacao = 0f;
+
+        faseFinalizacao = 0;
+        tempoRestanteFinalizacao = 0f;
 
         momentosEventos.Clear();
         mensagensSorteadas.Clear();
@@ -942,7 +1414,6 @@ public class DeliveryScreenManager : MonoBehaviour
     public void ResetDelivery()
     {
         StopAllCoroutines();
-
         LimparEstadoViagem();
 
         if (painelEntrega != null)

@@ -13,21 +13,13 @@ public class MainMenuController : MonoBehaviour
     private string initialScene = "Inicializadora";
 
     [Header("Panels")]
-    [SerializeField]
-    private GameObject menuPanel;
-
-    [SerializeField]
-    private GameObject creditsPanel;
-
-    [SerializeField]
-    private GameObject controlsPanel;
-
-    [SerializeField]
-    private GameObject configPanel;
+    [SerializeField] private GameObject menuPanel;
+    [SerializeField] private GameObject creditsPanel;
+    [SerializeField] private GameObject controlsPanel;
+    [SerializeField] private GameObject configPanel;
 
     [Header("Botao Continuar")]
-    [SerializeField]
-    private GameObject botaoContinuar;
+    [SerializeField] private GameObject botaoContinuar;
 
     [Header("Animacoes dos botoes")]
     [SerializeField]
@@ -52,37 +44,34 @@ public class MainMenuController : MonoBehaviour
         AtualizarBotaoContinuar();
     }
 
-    // Verifica se existe uma partida salva.
-    // Sem salvamento, o botao fica INVISIVEL.
     public void AtualizarBotaoContinuar()
     {
         bool existeSalvamento =
-            GameplayManager.ExisteProgressoSalvo();
+            LogiVerySaveManager.ExisteSalvamento();
 
         if (botaoContinuar != null)
         {
-            botaoContinuar.SetActive(existeSalvamento);
+            botaoContinuar.SetActive(
+                existeSalvamento
+            );
         }
         else
         {
             Debug.LogWarning(
-                "LogiVery: Botao Continuar nao foi " +
-                "atribuido no Inspector.",
+                "LogiVery: atribua o Botao Continuar " +
+                "no Inspector.",
                 this
             );
         }
 
         Debug.Log(
-            "LogiVery: progresso salvo encontrado: " +
+            "LogiVery: salvamento completo encontrado: " +
             existeSalvamento
         );
     }
 
-    // NOVO JOGO
     public void NewGame()
     {
-        // Um novo jogo nao deve recuperar
-        // o progresso de uma partida anterior.
         GameplayManager.ApagarProgressoSalvo();
 
         Time.timeScale = 1f;
@@ -94,14 +83,12 @@ public class MainMenuController : MonoBehaviour
         SceneManager.LoadScene(gameScene);
     }
 
-    // CONTINUAR JOGO
     public void ContinueGame()
     {
-        if (!GameplayManager.ExisteProgressoSalvo())
+        if (!LogiVerySaveManager.ExisteSalvamento())
         {
             Debug.LogWarning(
-                "LogiVery: nenhum progresso salvo " +
-                "para continuar."
+                "LogiVery: nao existe partida salva."
             );
 
             AtualizarBotaoContinuar();
@@ -111,14 +98,12 @@ public class MainMenuController : MonoBehaviour
         Time.timeScale = 1f;
 
         Debug.Log(
-            "LogiVery: continuando partida salva."
+            "LogiVery: carregando partida salva."
         );
 
-        // O GameplayManager restaurara os dados.
         SceneManager.LoadScene(gameScene);
     }
 
-    // YOUTUBE
     public void OpenYoutube()
     {
         Debug.Log("Abrindo Youtube...");
@@ -128,7 +113,6 @@ public class MainMenuController : MonoBehaviour
         );
     }
 
-    // SITE
     public void OpenSite()
     {
         Debug.Log("Abrindo Site...");
@@ -138,7 +122,6 @@ public class MainMenuController : MonoBehaviour
         );
     }
 
-    // CREDITOS
     public void OpenCredits()
     {
         Debug.Log("Abrindo Creditos...");
@@ -150,7 +133,6 @@ public class MainMenuController : MonoBehaviour
             menuPanel.SetActive(false);
     }
 
-    // CONTROLES
     public void OpenControls()
     {
         Debug.Log("Abrindo Controles...");
@@ -162,7 +144,6 @@ public class MainMenuController : MonoBehaviour
             menuPanel.SetActive(false);
     }
 
-    // CONFIGURACOES
     public void OpenConfig()
     {
         Debug.Log("Abrindo Configuracoes...");
@@ -174,7 +155,6 @@ public class MainMenuController : MonoBehaviour
             menuPanel.SetActive(false);
     }
 
-    // VOLTAR AO MENU PRINCIPAL
     public void BackToMenu()
     {
         if (menuPanel != null)
@@ -205,7 +185,6 @@ public class MainMenuController : MonoBehaviour
         );
     }
 
-    // SAIR PARA A INICIALIZADORA
     public void QuitScene()
     {
         Time.timeScale = 1f;

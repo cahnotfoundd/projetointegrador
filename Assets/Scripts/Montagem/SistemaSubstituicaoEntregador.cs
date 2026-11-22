@@ -29,13 +29,19 @@ public class SistemaSubstituicaoEntregador : MonoBehaviour
     [SerializeField] private TMP_Text textoDesistenciaFinal;
 
     [Header("Tempo de procura")]
-    [Min(1)] [SerializeField] private int esperaMinima = 1;
-    [Min(1)] [SerializeField] private int esperaMaxima = 10;
+    [Min(1)]
+    [SerializeField] private int esperaMinima = 1;
+
+    [Min(1)]
+    [SerializeField] private int esperaMaxima = 10;
 
     private int substituicoes;
     private bool aguardando;
     private bool pedidoPerdido;
     private Coroutine busca;
+
+    private float tempoRestanteBusca;
+    private int tempoBuscaTotal;
 
     private void Start()
     {
@@ -45,14 +51,25 @@ public class SistemaSubstituicaoEntregador : MonoBehaviour
     private void OnEnable()
     {
         if (cronometro != null)
-            cronometro.AoEsgotarTempo += TempoAcabou;
+        {
+            cronometro.AoEsgotarTempo +=
+                TempoAcabou;
+        }
     }
 
     private void OnDisable()
     {
         if (cronometro != null)
-            cronometro.AoEsgotarTempo -= TempoAcabou;
+        {
+            cronometro.AoEsgotarTempo -=
+                TempoAcabou;
+        }
 
+        CancelarBusca();
+    }
+
+    private void CancelarBusca()
+    {
         if (busca != null)
         {
             StopCoroutine(busca);
@@ -60,68 +77,107 @@ public class SistemaSubstituicaoEntregador : MonoBehaviour
         }
     }
 
-    // Reinicia o controle para um pedido novo.
     public void PrepararNovoPedido()
     {
-        if (busca != null)
-        {
-            StopCoroutine(busca);
-            busca = null;
-        }
+        CancelarBusca();
 
         substituicoes = 0;
         aguardando = false;
         pedidoPerdido = false;
+
+        tempoRestanteBusca = 0f;
+        tempoBuscaTotal = 0;
 
         OcultarTelas();
     }
 
     private void TempoAcabou()
     {
-        if (aguardando || pedidoPerdido || gerador == null)
+        if (aguardando ||
+            pedidoPerdido ||
+            gerador == null ||
+            gerador.EntregadorAtual == null)
+        {
             return;
+        }
 
-        // Primeira desistência: procurar substituto.
         if (substituicoes == 0)
         {
             aguardando = true;
 
             if (textoDesistencia != null)
+            {
                 textoDesistencia.text =
                     gerador.EntregadorAtual.nome +
                     " desistiu da entrega.";
+            }
 
-            telaTempoEsgotado.SetActive(true);
-            busca = StartCoroutine(ProcurarEntregador());
+            int minimo = Mathf.Max(
+                1,
+                Mathf.Min(esperaMinima, esperaMaxima)
+            );
+
+            int maximo = Mathf.Max(
+                minimo,
+                Mathf.Max(esperaMinima, esperaMaxima)
+            );
+
+            tempoBuscaTotal =
+                Random.Range(minimo, maximo + 1);
+
+            tempoRestanteBusca = tempoBuscaTotal;
+
+            if (telaTempoEsgotado != null)
+                telaTempoEsgotado.SetActive(true);
+
+            CancelarBusca();
+
+            busca = StartCoroutine(
+                ProcurarEntregador()
+            );
         }
         else
         {
-            // Segunda desistência: pedido perdido.
             MostrarPedidoPerdido();
         }
     }
 
     private IEnumerator ProcurarEntregador()
     {
-        int minimo = Mathf.Max(
-            1, Mathf.Min(esperaMinima, esperaMaxima));
-
-        int maximo = Mathf.Max(
-            minimo, Mathf.Max(esperaMinima, esperaMaxima));
-
-        int espera = Random.Range(minimo, maximo + 1);
-
-        
-        for (int i = 1; i <= espera; i++)
+        while (tempoRestanteBusca > 0f)
         {
-            if (textoContagem != null)
-                textoContagem.text = $"{i:00}s";
+            // Quando o menu de opcoes pausa o jogo,
+            // a busca tambem fica pausada.
+            if (Time.timeScale > 0f)
+            {
+                tempoRestanteBusca = Mathf.Max(
+                    0f,
+                    tempoRestanteBusca -
+                    Time.unscaledDeltaTime
+                );
+            }
 
-            yield return new WaitForSecondsRealtime(1f);
+            if (textoContagem != null)
+            {
+                int decorrido = Mathf.Clamp(
+                    tempoBuscaTotal -
+                    Mathf.CeilToInt(
+                        tempoRestanteBusca
+                    ) + 1,
+                    1,
+                    Mathf.Max(1, tempoBuscaTotal)
+                );
+
+                textoContagem.text =
+                    $"{decorrido:00}s";
+            }
+
+            yield return null;
         }
 
+        if (telaTempoEsgotado != null)
+            telaTempoEsgotado.SetActive(false);
 
-        telaTempoEsgotado.SetActive(false);
         busca = null;
 
         if (!gerador.SortearEntregadorSubstituto(
@@ -133,49 +189,48 @@ public class SistemaSubstituicaoEntregador : MonoBehaviour
 
         if (fichaNovoEntregador != null)
         {
-            fichaNovoEntregador.sprite = novo.imagemCompleta;
+            fichaNovoEntregador.sprite =
+                novo.imagemCompleta;
+
             fichaNovoEntregador.enabled =
                 novo.imagemCompleta != null;
         }
 
-        telaNovoEntregador.SetActive(true);
+        if (telaNovoEntregador != null)
+            telaNovoEntregador.SetActive(true);
     }
 
-    // CONTINUAR da tela do novo entregador.
-    
     public void ContinuarComNovoEntregador()
     {
         if (!aguardando ||
             telaNovoEntregador == null ||
             !telaNovoEntregador.activeSelf)
-            return;
-
-        if (gerador == null || gerador.EntregadorAtual == null)
         {
-            Debug.LogError("Novo entregador não encontrado!");
             return;
         }
 
-        // Registra que o pedido já recebeu um substituto.
+        if (gerador == null ||
+            gerador.EntregadorAtual == null)
+        {
+            Debug.LogError(
+                "Novo entregador nao encontrado!"
+            );
+            return;
+        }
+
         substituicoes = 1;
         aguardando = false;
 
-        // PRIMEIRO: atualiza a foto e reinicia o tempo.
-        // Usa o mesmo cronômetro do pedido original.
         gerador.ReiniciarCronometroDoEntregadorAtual();
 
-        // Depois, fecha a tela do novo entregador.
         telaNovoEntregador.SetActive(false);
 
-        // Reinicia os produtos do mesmo pedido.
         if (montagem != null)
             montagem.ResetMounting();
 
-        // Reinicia a embalagem.
         if (embalagem != null)
             embalagem.ResetPackaging();
 
-        // Retorna à montagem.
         if (panelEmbalagem != null)
             panelEmbalagem.SetActive(false);
 
@@ -183,9 +238,10 @@ public class SistemaSubstituicaoEntregador : MonoBehaviour
             panelMontagem.SetActive(true);
     }
 
-
     private void MostrarPedidoPerdido()
     {
+        CancelarBusca();
+
         aguardando = false;
         pedidoPerdido = true;
 
@@ -208,13 +264,11 @@ public class SistemaSubstituicaoEntregador : MonoBehaviour
             telaPedidoPerdido.SetActive(true);
     }
 
-    // CONTINUAR da tela do pedido perdido.
     public void ContinuarDepoisDaFalha()
     {
         if (!pedidoPerdido)
             return;
 
-        // Impede contar a mesma falha duas vezes.
         pedidoPerdido = false;
 
         if (cronometro != null)
@@ -222,11 +276,111 @@ public class SistemaSubstituicaoEntregador : MonoBehaviour
 
         OcultarTelas();
 
-        // O GameplayManager escolhe o destino.
         if (gameplayManager != null)
+        {
             gameplayManager.RegistrarPedidoPerdido();
+        }
         else
-            Debug.LogError("GameplayManager não atribuído!");
+        {
+            Debug.LogError(
+                "GameplayManager nao atribuido!"
+            );
+        }
+    }
+
+    public void CapturarEstado(
+        LogiVerySaveManager.Substituicao dados)
+    {
+        if (dados == null)
+            return;
+
+        dados.quantidadeSubstituicoes = substituicoes;
+        dados.aguardando = aguardando;
+        dados.pedidoPerdido = pedidoPerdido;
+        dados.tempoRestanteBusca = tempoRestanteBusca;
+        dados.tempoBuscaTotal = tempoBuscaTotal;
+
+        dados.novoEntregadorVisivel =
+            telaNovoEntregador != null &&
+            telaNovoEntregador.activeSelf;
+    }
+
+    public void RestaurarEstado(
+        LogiVerySaveManager.Substituicao dados)
+    {
+        if (dados == null)
+            return;
+
+        CancelarBusca();
+        OcultarTelas();
+
+        substituicoes =
+            Mathf.Max(0, dados.quantidadeSubstituicoes);
+
+        aguardando = dados.aguardando;
+        pedidoPerdido = dados.pedidoPerdido;
+
+        tempoRestanteBusca =
+            Mathf.Max(0f, dados.tempoRestanteBusca);
+
+        tempoBuscaTotal = Mathf.Max(
+            1, dados.tempoBuscaTotal
+        );
+
+        if (pedidoPerdido)
+        {
+            if (textoDesistenciaFinal != null &&
+                gerador != null &&
+                gerador.EntregadorAtual != null)
+            {
+                textoDesistenciaFinal.text =
+                    gerador.EntregadorAtual.nome +
+                    " desistiu da entrega.";
+            }
+
+            if (telaPedidoPerdido != null)
+                telaPedidoPerdido.SetActive(true);
+
+            return;
+        }
+
+        if (!aguardando)
+            return;
+
+        if (dados.novoEntregadorVisivel)
+        {
+            if (gerador != null &&
+                gerador.EntregadorAtual != null &&
+                fichaNovoEntregador != null)
+            {
+                fichaNovoEntregador.sprite =
+                    gerador.EntregadorAtual.imagemCompleta;
+
+                fichaNovoEntregador.enabled =
+                    fichaNovoEntregador.sprite != null;
+            }
+
+            if (telaNovoEntregador != null)
+                telaNovoEntregador.SetActive(true);
+        }
+        else
+        {
+            if (textoDesistencia != null &&
+                gerador != null &&
+                gerador.EntregadorAtual != null)
+            {
+                textoDesistencia.text =
+                    gerador.EntregadorAtual.nome +
+                    " desistiu da entrega.";
+            }
+
+            if (telaTempoEsgotado != null)
+                telaTempoEsgotado.SetActive(true);
+
+            busca = StartCoroutine(
+                ProcurarEntregador()
+            );
+        }
     }
 
     private void OcultarTelas()

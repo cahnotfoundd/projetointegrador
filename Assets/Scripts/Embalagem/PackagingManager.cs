@@ -24,7 +24,8 @@ public class PackagingManager : MonoBehaviour
     [SerializeField] private DragDropPackaging labelDrag;
 
     [Header("Cronometro")]
-    [SerializeField] private CronometroPreparacao cronometroPreparacao;
+    [SerializeField]
+    private CronometroPreparacao cronometroPreparacao;
 
     private bool isPackagePlaced;
     private bool isLabelPlaced;
@@ -34,17 +35,7 @@ public class PackagingManager : MonoBehaviour
 
     private void Start()
     {
-        if (closedBox != null)
-            closedBox.SetActive(true);
-
-        if (packagedBox != null)
-            packagedBox.SetActive(false);
-
-        if (labeledBox != null)
-            labeledBox.SetActive(false);
-
-        if (proceedButton != null)
-            proceedButton.interactable = false;
+        AtualizarVisual();
     }
 
     public bool ItsOnBox(
@@ -54,11 +45,12 @@ public class PackagingManager : MonoBehaviour
         if (boxArea == null)
             return false;
 
-        return RectTransformUtility.RectangleContainsScreenPoint(
-            boxArea,
-            screenPosition,
-            eventCamera
-        );
+        return RectTransformUtility
+            .RectangleContainsScreenPoint(
+                boxArea,
+                screenPosition,
+                eventCamera
+            );
     }
 
     public void TryPlacePackage()
@@ -68,23 +60,10 @@ public class PackagingManager : MonoBehaviour
 
         isPackagePlaced = true;
 
-        if (packaging != null)
-            packaging.SetActive(false);
+        AtualizarVisual();
 
-        if (closedBox != null)
-            closedBox.SetActive(false);
-
-        if (packagedBox != null)
-            packagedBox.SetActive(true);
-
-        if (labeledBox != null)
-            labeledBox.SetActive(false);
-
-        // AUDIO: embrulho colocado corretamente.
         LogiVeryEfeitosSonoros.Instancia?
             .TocarEmbalagem();
-
-        UpdateProgress();
     }
 
     public void TryPutLabel()
@@ -94,27 +73,33 @@ public class PackagingManager : MonoBehaviour
 
         isLabelPlaced = true;
 
-        if (label != null)
-            label.SetActive(false);
+        AtualizarVisual();
 
-        if (closedBox != null)
-            closedBox.SetActive(false);
-
-        if (packagedBox != null)
-            packagedBox.SetActive(false);
-
-        if (labeledBox != null)
-            labeledBox.SetActive(true);
-
-        // AUDIO: etiqueta aplicada corretamente.
         LogiVeryEfeitosSonoros.Instancia?
             .TocarEtiqueta();
-
-        UpdateProgress();
     }
 
-    private void UpdateProgress()
+    private void AtualizarVisual()
     {
+        if (packaging != null)
+            packaging.SetActive(!isPackagePlaced);
+
+        if (label != null)
+            label.SetActive(!isLabelPlaced);
+
+        if (closedBox != null)
+            closedBox.SetActive(!isPackagePlaced);
+
+        if (packagedBox != null)
+        {
+            packagedBox.SetActive(
+                isPackagePlaced && !isLabelPlaced
+            );
+        }
+
+        if (labeledBox != null)
+            labeledBox.SetActive(isLabelPlaced);
+
         if (proceedButton != null)
         {
             proceedButton.interactable =
@@ -137,25 +122,43 @@ public class PackagingManager : MonoBehaviour
             cronometroPreparacao.Parar();
     }
 
+    public void CapturarEstado(
+        LogiVerySaveManager.Embalagem dados)
+    {
+        if (dados == null)
+            return;
+
+        dados.embrulhoAplicado = isPackagePlaced;
+        dados.etiquetaAplicada = isLabelPlaced;
+    }
+
+    public void RestaurarEstado(
+        LogiVerySaveManager.Embalagem dados)
+    {
+        if (dados == null)
+            return;
+
+        // Reconstroi sem tocar sons nem mudar
+        // de etapa automaticamente.
+        if (packagingDrag != null)
+            packagingDrag.ResetPackagingItem();
+
+        if (labelDrag != null)
+            labelDrag.ResetPackagingItem();
+
+        isPackagePlaced = dados.embrulhoAplicado;
+
+        isLabelPlaced =
+            dados.embrulhoAplicado &&
+            dados.etiquetaAplicada;
+
+        AtualizarVisual();
+    }
+
     public void ResetPackaging()
     {
         isPackagePlaced = false;
         isLabelPlaced = false;
-
-        if (packaging != null)
-            packaging.SetActive(true);
-
-        if (label != null)
-            label.SetActive(true);
-
-        if (closedBox != null)
-            closedBox.SetActive(true);
-
-        if (packagedBox != null)
-            packagedBox.SetActive(false);
-
-        if (labeledBox != null)
-            labeledBox.SetActive(false);
 
         if (packagingDrag != null)
             packagingDrag.ResetPackagingItem();
@@ -163,8 +166,7 @@ public class PackagingManager : MonoBehaviour
         if (labelDrag != null)
             labelDrag.ResetPackagingItem();
 
-        if (proceedButton != null)
-            proceedButton.interactable = false;
+        AtualizarVisual();
 
         Debug.Log("Embalagem reiniciada.");
     }

@@ -11,8 +11,7 @@ public class SemaforoMinigame : MonoBehaviour
     private DeliveryScreenManager gerenciadorEntrega;
 
     [Header("Imagem unica do semaforo")]
-    [SerializeField]
-    private Image imagemSemaforo;
+    [SerializeField] private Image imagemSemaforo;
 
     [Header("Sprites dos quatro estados")]
     [SerializeField] private Sprite spriteApagado;
@@ -55,11 +54,16 @@ public class SemaforoMinigame : MonoBehaviour
     }
 
     private EstadoSinal estadoAtual;
-
     private float tempoDecorrido;
     private bool desafioEncerrado;
 
+    private float tempoRestanteLuz;
+    private float tempoRestanteAviso;
+    private bool sucessoEncerramento;
+    private string mensagemEncerramento = "";
+
     private Coroutine rotinaLuzes;
+    private Coroutine rotinaAviso;
     private bool avisouGerenciadorAusente;
 
     private void OnEnable()
@@ -67,8 +71,9 @@ public class SemaforoMinigame : MonoBehaviour
         tempoDecorrido = 0f;
         desafioEncerrado = false;
         avisouGerenciadorAusente = false;
-
-        estadoAtual = EstadoSinal.Apagado;
+        sucessoEncerramento = false;
+        mensagemEncerramento = "";
+        tempoRestanteAviso = 0f;
 
         if (textoInstrucao != null)
         {
@@ -77,19 +82,21 @@ public class SemaforoMinigame : MonoBehaviour
         }
 
         if (textoAviso != null)
-        {
             textoAviso.text = "";
-        }
 
         if (botaoAvancar != null)
-        {
             botaoAvancar.interactable = true;
-        }
+
+        estadoAtual = EstadoSinal.Apagado;
 
         MostrarEstado(
             EstadoSinal.Apagado,
-            spriteApagado
+            spriteApagado,
+            false
         );
+
+        tempoRestanteLuz =
+            Random.Range(0.6f, 1.8f);
 
         rotinaLuzes = StartCoroutine(
             AlternarLuzes()
@@ -116,72 +123,92 @@ public class SemaforoMinigame : MonoBehaviour
     {
         while (!desafioEncerrado)
         {
-            MostrarEstado(
-                EstadoSinal.Apagado,
-                spriteApagado
-            );
+            while (tempoRestanteLuz > 0f &&
+                   !desafioEncerrado)
+            {
+                tempoRestanteLuz = Mathf.Max(
+                    0f,
+                    tempoRestanteLuz - Time.deltaTime
+                );
 
-            yield return new WaitForSeconds(
-                Random.Range(0.6f, 1.8f)
-            );
-
-            if (desafioEncerrado)
-                yield break;
-
-            MostrarEstado(
-                EstadoSinal.Vermelho,
-                spriteVermelho
-            );
-
-            yield return new WaitForSeconds(
-                Random.Range(0.6f, 1.2f)
-            );
+                yield return null;
+            }
 
             if (desafioEncerrado)
                 yield break;
 
-            MostrarEstado(
-                EstadoSinal.Amarelo,
-                spriteAmarelo
-            );
+            AvancarEstadoLuz();
+        }
 
-            yield return new WaitForSeconds(
-                Mathf.Max(0.1f, duracaoAmarelo)
-            );
+        rotinaLuzes = null;
+    }
 
-            if (desafioEncerrado)
-                yield break;
+    private void AvancarEstadoLuz()
+    {
+        switch (estadoAtual)
+        {
+            case EstadoSinal.Apagado:
+                MostrarEstado(
+                    EstadoSinal.Vermelho,
+                    spriteVermelho
+                );
 
-            MostrarEstado(
-                EstadoSinal.Verde,
-                spriteVerde
-            );
+                tempoRestanteLuz =
+                    Random.Range(0.6f, 1.2f);
+                break;
 
-            float minimo = Mathf.Max(
-                0.1f,
-                Mathf.Min(
-                    tempoVerdeMinimo,
-                    tempoVerdeMaximo
-                )
-            );
+            case EstadoSinal.Vermelho:
+                MostrarEstado(
+                    EstadoSinal.Amarelo,
+                    spriteAmarelo
+                );
 
-            float maximo = Mathf.Max(
-                minimo,
-                Mathf.Max(
-                    tempoVerdeMinimo,
-                    tempoVerdeMaximo
-                )
-            );
+                tempoRestanteLuz =
+                    Mathf.Max(0.1f, duracaoAmarelo);
+                break;
 
-            yield return new WaitForSeconds(
-                Random.Range(minimo, maximo)
-            );
+            case EstadoSinal.Amarelo:
+                MostrarEstado(
+                    EstadoSinal.Verde,
+                    spriteVerde
+                );
+
+                float minimo = Mathf.Max(
+                    0.1f,
+                    Mathf.Min(
+                        tempoVerdeMinimo,
+                        tempoVerdeMaximo
+                    )
+                );
+
+                float maximo = Mathf.Max(
+                    minimo,
+                    Mathf.Max(
+                        tempoVerdeMinimo,
+                        tempoVerdeMaximo
+                    )
+                );
+
+                tempoRestanteLuz =
+                    Random.Range(minimo, maximo);
+                break;
+
+            case EstadoSinal.Verde:
+                MostrarEstado(
+                    EstadoSinal.Apagado,
+                    spriteApagado
+                );
+
+                tempoRestanteLuz =
+                    Random.Range(0.6f, 1.8f);
+                break;
         }
     }
 
     private void MostrarEstado(
         EstadoSinal novoEstado,
-        Sprite novoSprite)
+        Sprite novoSprite,
+        bool tocarSom = true)
     {
         bool mudouDeEstado =
             novoEstado != estadoAtual;
@@ -194,12 +221,29 @@ public class SemaforoMinigame : MonoBehaviour
             imagemSemaforo.color = Color.white;
         }
 
-        // Cada luz acesa solicita o som
-        // exatamente quando o sprite muda.
-        if (mudouDeEstado &&
+        if (tocarSom &&
+            mudouDeEstado &&
             novoEstado != EstadoSinal.Apagado)
         {
             TocarSomDaLuz();
+        }
+    }
+
+    private Sprite SpriteDoEstado(EstadoSinal estado)
+    {
+        switch (estado)
+        {
+            case EstadoSinal.Vermelho:
+                return spriteVermelho;
+
+            case EstadoSinal.Amarelo:
+                return spriteAmarelo;
+
+            case EstadoSinal.Verde:
+                return spriteVerde;
+
+            default:
+                return spriteApagado;
         }
     }
 
@@ -213,8 +257,8 @@ public class SemaforoMinigame : MonoBehaviour
             if (!avisouGerenciadorAusente)
             {
                 Debug.LogError(
-                    "Semaforo: LogiVeryEfeitosSonoros " +
-                    "nao encontrado! Confira o AudioManager.",
+                    "Semaforo: gerenciador de sons " +
+                    "nao encontrado!",
                     this
                 );
 
@@ -224,8 +268,6 @@ public class SemaforoMinigame : MonoBehaviour
             return;
         }
 
-        // Agora usa o sistema centralizado:
-        // AudioManager > Semaforo.
         sons.TocarLuzSemaforo();
 
         if (mostrarLogsDeAudio)
@@ -238,8 +280,6 @@ public class SemaforoMinigame : MonoBehaviour
         }
     }
 
-    // Permite testar o audio sem esperar
-    // o semaforo mudar de cor.
     [ContextMenu("TESTAR SOM DO SEMAFORO (Play Mode)")]
     private void TestarSomDoSemaforo()
     {
@@ -249,7 +289,6 @@ public class SemaforoMinigame : MonoBehaviour
                 "Entre no Play Mode para testar.",
                 this
             );
-
             return;
         }
 
@@ -285,6 +324,10 @@ public class SemaforoMinigame : MonoBehaviour
             return;
 
         desafioEncerrado = true;
+        sucessoEncerramento = sucesso;
+        mensagemEncerramento = mensagem;
+        tempoRestanteAviso =
+            Mathf.Max(0f, duracaoAviso);
 
         if (rotinaLuzes != null)
         {
@@ -298,22 +341,29 @@ public class SemaforoMinigame : MonoBehaviour
         if (textoAviso != null)
             textoAviso.text = mensagem;
 
-        StartCoroutine(
-            FecharDepoisDoAviso(sucesso)
+        rotinaAviso = StartCoroutine(
+            FecharDepoisDoAviso()
         );
     }
 
-    private IEnumerator FecharDepoisDoAviso(
-        bool sucesso)
+    private IEnumerator FecharDepoisDoAviso()
     {
-        yield return new WaitForSeconds(
-            duracaoAviso
-        );
+        while (tempoRestanteAviso > 0f)
+        {
+            tempoRestanteAviso = Mathf.Max(
+                0f,
+                tempoRestanteAviso - Time.deltaTime
+            );
+
+            yield return null;
+        }
+
+        rotinaAviso = null;
 
         if (gerenciadorEntrega != null)
         {
             gerenciadorEntrega.ConcluirSemaforo(
-                sucesso
+                sucessoEncerramento
             );
         }
         else
@@ -325,13 +375,107 @@ public class SemaforoMinigame : MonoBehaviour
         }
     }
 
+    public void CapturarEstado(
+        LogiVerySaveManager.Semaforo dados)
+    {
+        if (dados == null)
+            return;
+
+        dados.estadoAtual = (int)estadoAtual;
+        dados.tempoDecorrido = tempoDecorrido;
+        dados.desafioEncerrado = desafioEncerrado;
+        dados.tempoRestanteLuz = tempoRestanteLuz;
+        dados.tempoRestanteAviso = tempoRestanteAviso;
+        dados.sucessoEncerramento = sucessoEncerramento;
+        dados.textoAviso = mensagemEncerramento;
+    }
+
+    public void RestaurarEstado(
+        LogiVerySaveManager.Semaforo dados)
+    {
+        if (dados == null)
+            return;
+
+        StopAllCoroutines();
+
+        rotinaLuzes = null;
+        rotinaAviso = null;
+
+        estadoAtual = (EstadoSinal)Mathf.Clamp(
+            dados.estadoAtual,
+            0,
+            3
+        );
+
+        tempoDecorrido = Mathf.Max(
+            0f,
+            dados.tempoDecorrido
+        );
+
+        desafioEncerrado = dados.desafioEncerrado;
+
+        tempoRestanteLuz = Mathf.Max(
+            0f,
+            dados.tempoRestanteLuz
+        );
+
+        tempoRestanteAviso = Mathf.Max(
+            0f,
+            dados.tempoRestanteAviso
+        );
+
+        sucessoEncerramento =
+            dados.sucessoEncerramento;
+
+        mensagemEncerramento =
+            dados.textoAviso ?? "";
+
+        MostrarEstado(
+            estadoAtual,
+            SpriteDoEstado(estadoAtual),
+            false
+        );
+
+        if (textoInstrucao != null)
+        {
+            textoInstrucao.text =
+                "Avance quando o sinal estiver VERDE!";
+        }
+
+        if (textoAviso != null)
+        {
+            textoAviso.text = desafioEncerrado
+                ? mensagemEncerramento
+                : "";
+        }
+
+        if (botaoAvancar != null)
+        {
+            botaoAvancar.interactable =
+                !desafioEncerrado;
+        }
+
+        if (desafioEncerrado)
+        {
+            rotinaAviso = StartCoroutine(
+                FecharDepoisDoAviso()
+            );
+        }
+        else
+        {
+            rotinaLuzes = StartCoroutine(
+                AlternarLuzes()
+            );
+        }
+    }
+
     private void OnDisable()
     {
         StopAllCoroutines();
-        rotinaLuzes = null;
 
-        // Evita que um bipe continue tocando
-        // depois que o minigame for fechado.
+        rotinaLuzes = null;
+        rotinaAviso = null;
+
         LogiVeryEfeitosSonoros sons =
             LogiVeryEfeitosSonoros.Instancia;
 

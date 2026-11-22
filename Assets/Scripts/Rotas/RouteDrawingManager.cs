@@ -40,16 +40,18 @@ public class RouteDrawingManager : MonoBehaviour
     [SerializeField, Range(0.001f, 0.02f)]
     private float routeSelectionMargin = 0.003f;
 
-    private readonly List<Vector2> paintedPoints = new();
-    private readonly List<int> candidateRoutes = new();
+    private readonly List<Vector2> paintedPoints =
+        new List<Vector2>();
+
+    private readonly List<int> candidateRoutes =
+        new List<int>();
 
     private float[] routeProgress;
     private int selectedRoute = -1;
+
     private bool attemptStarted;
     private bool drawing;
     private bool routeCompleted;
-
-    // AUDIO: impede chamadas repetidas ao AudioSource.
     private bool somDesenhoAtivo;
 
     private Camera UICamera
@@ -94,7 +96,6 @@ public class RouteDrawingManager : MonoBehaviour
 
     private void Update()
     {
-        // Nao permite desenhar ou tocar som fora da tela de rotas.
         if (routesPanel != null &&
             !routesPanel.activeInHierarchy)
         {
@@ -114,7 +115,6 @@ public class RouteDrawingManager : MonoBehaviour
         if (drawing && Mouse.current.leftButton.isPressed)
             ContinueDrawing();
 
-        // Soltar o mouse pausa o desenho e o audio.
         if (Mouse.current.leftButton.wasReleasedThisFrame)
         {
             drawing = false;
@@ -122,7 +122,6 @@ public class RouteDrawingManager : MonoBehaviour
         }
     }
 
-    // AUDIO: controla o loop apenas quando necessario.
     private void ControlarSomDesenho(bool deveTocar)
     {
         if (somDesenhoAtivo == deveTocar)
@@ -188,7 +187,6 @@ public class RouteDrawingManager : MonoBehaviour
 
         if (attemptStarted)
         {
-            // Retoma sem exigir clique na origem.
             drawing = true;
             return;
         }
@@ -284,7 +282,6 @@ public class RouteDrawingManager : MonoBehaviour
         float secondDistance = float.MaxValue;
         float bestProgress = 0f;
 
-        // Preserva as rotas candidatas em trechos compartilhados.
         foreach (int routeIndex in candidateRoutes)
         {
             if (!TryProjectForward(
@@ -367,7 +364,6 @@ public class RouteDrawingManager : MonoBehaviour
             routeProgress[lineRoute]
         );
 
-        // AUDIO: o cursor esta sobre uma rota valida.
         ControlarSomDesenho(true);
 
         if (selectedRoute >= 0)
@@ -392,7 +388,6 @@ public class RouteDrawingManager : MonoBehaviour
                 if (confirmButton != null)
                     confirmButton.interactable = true;
 
-                // AUDIO: interrompe na conclusao.
                 ControlarSomDesenho(false);
             }
         }
@@ -489,17 +484,15 @@ public class RouteDrawingManager : MonoBehaviour
 
         for (int i = 0; i < path.Length - 1; i++)
         {
-            float segmentLength =
-                Vector2.Distance(
-                    path[i],
-                    path[i + 1]
-                );
+            float segmentLength = Vector2.Distance(
+                path[i],
+                path[i + 1]
+            );
 
-            if (travelled + segmentLength <= targetDistance)
+            if (travelled + segmentLength <=
+                targetDistance)
             {
-                paintedPoints.Add(
-                    ToLocal(path[i + 1])
-                );
+                paintedPoints.Add(ToLocal(path[i + 1]));
             }
             else
             {
@@ -517,9 +510,7 @@ public class RouteDrawingManager : MonoBehaviour
                         )
                     );
 
-                    paintedPoints.Add(
-                        ToLocal(point)
-                    );
+                    paintedPoints.Add(ToLocal(point));
                 }
 
                 break;
@@ -599,6 +590,93 @@ public class RouteDrawingManager : MonoBehaviour
             confirmButton.interactable = false;
 
         Debug.Log("Rota reiniciada.");
+    }
+
+    public void CapturarEstado(
+        LogiVerySaveManager.Rota dados)
+    {
+        if (dados == null)
+            return;
+
+        dados.rotaSelecionada = selectedRoute;
+        dados.tentativaIniciada = attemptStarted;
+        dados.concluida = routeCompleted;
+
+        dados.pontosDesenhados =
+            new List<Vector2>(paintedPoints);
+
+        dados.rotasCandidatas =
+            new List<int>(candidateRoutes);
+
+        dados.progressoRotas =
+            routeProgress != null
+                ? new List<float>(routeProgress)
+                : new List<float>();
+    }
+
+    public void RestaurarEstado(
+        LogiVerySaveManager.Rota dados)
+    {
+        if (dados == null)
+            return;
+
+        ControlarSomDesenho(false);
+
+        selectedRoute = dados.rotaSelecionada;
+        attemptStarted = dados.tentativaIniciada;
+        routeCompleted = dados.concluida;
+
+        // O jogador deve pressionar o mouse
+        // novamente para continuar desenhando.
+        drawing = false;
+
+        paintedPoints.Clear();
+        candidateRoutes.Clear();
+
+        if (dados.pontosDesenhados != null)
+        {
+            paintedPoints.AddRange(
+                dados.pontosDesenhados
+            );
+        }
+
+        if (dados.rotasCandidatas != null)
+        {
+            foreach (int indice in dados.rotasCandidatas)
+            {
+                if (IsValidRoute(indice))
+                    candidateRoutes.Add(indice);
+            }
+        }
+
+        routeProgress = new float[
+            routes == null ? 0 : routes.Length
+        ];
+
+        if (dados.progressoRotas != null)
+        {
+            int quantidade = Mathf.Min(
+                routeProgress.Length,
+                dados.progressoRotas.Count
+            );
+
+            for (int i = 0; i < quantidade; i++)
+            {
+                routeProgress[i] = Mathf.Clamp01(
+                    dados.progressoRotas[i]
+                );
+            }
+        }
+
+        if (routeLine != null)
+            routeLine.SetPoints(paintedPoints);
+
+        if (confirmButton != null)
+            confirmButton.interactable = routeCompleted;
+
+        Debug.Log(
+            "LogiVery: desenho da rota restaurado."
+        );
     }
 
     private void OnDisable()

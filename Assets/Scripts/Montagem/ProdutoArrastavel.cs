@@ -23,7 +23,8 @@ public class ProdutoArrastavel : MonoBehaviour,
 
     [Header("Som do produto")]
     [SerializeField]
-    private TipoSomProduto tipoSom = TipoSomProduto.Automatico;
+    private TipoSomProduto tipoSom =
+        TipoSomProduto.Automatico;
 
     [Header("State")]
     [SerializeField] private bool placed;
@@ -31,7 +32,8 @@ public class ProdutoArrastavel : MonoBehaviour,
     private int quantidadeRepresentada = 1;
 
     public bool Placed => placed;
-    public int QuantidadeRepresentada => quantidadeRepresentada;
+    public int QuantidadeRepresentada =>
+        quantidadeRepresentada;
     public TipoSomProduto TipoSom => tipoSom;
 
     private RectTransform rectTransform;
@@ -43,8 +45,11 @@ public class ProdutoArrastavel : MonoBehaviour,
     {
         rectTransform = GetComponent<RectTransform>();
 
-        originalParent = rectTransform.parent as RectTransform;
-        originalPosition = rectTransform.anchoredPosition;
+        originalParent =
+            rectTransform.parent as RectTransform;
+
+        originalPosition =
+            rectTransform.anchoredPosition;
 
         canvas = GetComponentInParent<Canvas>();
 
@@ -56,7 +61,6 @@ public class ProdutoArrastavel : MonoBehaviour,
         }
     }
 
-    // Configura o produto criado pelo GeradorPedidoAleatorio.
     public void ConfigurarParaPedido(
         RectTransform novaArea,
         MountingManager novoManager,
@@ -67,8 +71,11 @@ public class ProdutoArrastavel : MonoBehaviour,
         boxArea = novaArea;
         mountingManager = novoManager;
 
-        originalParent = rectTransform.parent as RectTransform;
-        originalPosition = rectTransform.anchoredPosition;
+        originalParent =
+            rectTransform.parent as RectTransform;
+
+        originalPosition =
+            rectTransform.anchoredPosition;
 
         canvas = GetComponentInParent<Canvas>();
 
@@ -77,7 +84,8 @@ public class ProdutoArrastavel : MonoBehaviour,
         this.quantidadeRepresentada =
             Mathf.Max(1, quantidadeRepresentada);
 
-        CanvasGroup canvasGroup = GetComponent<CanvasGroup>();
+        CanvasGroup canvasGroup =
+            GetComponent<CanvasGroup>();
 
         if (canvasGroup != null)
         {
@@ -89,9 +97,7 @@ public class ProdutoArrastavel : MonoBehaviour,
     private void TocarSomInteracao()
     {
         if (mountingManager != null)
-        {
             mountingManager.TocarSomProduto(this);
-        }
     }
 
     public void OnPointerDown(PointerEventData eventData)
@@ -99,12 +105,13 @@ public class ProdutoArrastavel : MonoBehaviour,
         if (placed)
             return;
 
-        originalParent = rectTransform.parent as RectTransform;
-        originalPosition = rectTransform.anchoredPosition;
+        originalParent =
+            rectTransform.parent as RectTransform;
 
-        // Som quando o jogador pressiona o mouse.
+        originalPosition =
+            rectTransform.anchoredPosition;
+
         TocarSomInteracao();
-
         rectTransform.SetAsLastSibling();
     }
 
@@ -119,11 +126,12 @@ public class ProdutoArrastavel : MonoBehaviour,
         if (movementArea == null)
             return;
 
-        if (RectTransformUtility.ScreenPointToLocalPointInRectangle(
-            movementArea,
-            eventData.position,
-            eventData.pressEventCamera,
-            out Vector2 localPoint))
+        if (RectTransformUtility
+            .ScreenPointToLocalPointInRectangle(
+                movementArea,
+                eventData.position,
+                eventData.pressEventCamera,
+                out Vector2 localPoint))
         {
             rectTransform.anchoredPosition = localPoint;
         }
@@ -134,15 +142,14 @@ public class ProdutoArrastavel : MonoBehaviour,
         if (placed)
             return;
 
-        // Som quando o jogador solta o mouse,
-        // dentro ou fora da caixa.
         TocarSomInteracao();
 
         if (boxArea == null)
             return;
 
         bool placedInBox =
-            RectTransformUtility.RectangleContainsScreenPoint(
+            RectTransformUtility
+            .RectangleContainsScreenPoint(
                 boxArea,
                 eventData.position,
                 eventData.pressEventCamera
@@ -154,21 +161,31 @@ public class ProdutoArrastavel : MonoBehaviour,
         }
         else
         {
-            rectTransform.SetParent(originalParent, false);
-            rectTransform.anchoredPosition = originalPosition;
+            rectTransform.SetParent(
+                originalParent, false
+            );
+
+            rectTransform.anchoredPosition =
+                originalPosition;
         }
     }
 
     private void PutInBox(PointerEventData eventData)
     {
-        if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(
-            boxArea,
-            eventData.position,
-            eventData.pressEventCamera,
-            out Vector2 localPosition))
+        if (!RectTransformUtility
+            .ScreenPointToLocalPointInRectangle(
+                boxArea,
+                eventData.position,
+                eventData.pressEventCamera,
+                out Vector2 localPosition))
         {
-            rectTransform.SetParent(originalParent, false);
-            rectTransform.anchoredPosition = originalPosition;
+            rectTransform.SetParent(
+                originalParent, false
+            );
+
+            rectTransform.anchoredPosition =
+                originalPosition;
+
             return;
         }
 
@@ -177,8 +194,11 @@ public class ProdutoArrastavel : MonoBehaviour,
         float halfWidth = boxArea.rect.width / 2f;
         float halfHeight = boxArea.rect.height / 2f;
 
-        float productHalfWidth = rectTransform.rect.width / 2f;
-        float productHalfHeight = rectTransform.rect.height / 2f;
+        float productHalfWidth =
+            rectTransform.rect.width / 2f;
+
+        float productHalfHeight =
+            rectTransform.rect.height / 2f;
 
         float limitX = Mathf.Max(
             0f, halfWidth - productHalfWidth
@@ -196,19 +216,13 @@ public class ProdutoArrastavel : MonoBehaviour,
             localPosition.y, -limitY, limitY
         );
 
-        rectTransform.anchoredPosition = localPosition;
+        rectTransform.anchoredPosition =
+            localPosition;
 
         placed = true;
 
-        CanvasGroup canvasGroup = GetComponent<CanvasGroup>();
+        AtualizarInteracao();
 
-        if (canvasGroup != null)
-        {
-            canvasGroup.blocksRaycasts = false;
-            canvasGroup.interactable = false;
-        }
-
-        // Atualiza a montagem, sem reproduzir outro som.
         if (mountingManager != null)
         {
             mountingManager.CheckOrderCompletion();
@@ -216,7 +230,8 @@ public class ProdutoArrastavel : MonoBehaviour,
         else
         {
             Debug.LogError(
-                "MountingManager nao esta atribuido!", this
+                "MountingManager nao esta atribuido!",
+                this
             );
         }
 
@@ -227,24 +242,93 @@ public class ProdutoArrastavel : MonoBehaviour,
         );
     }
 
+    private void AtualizarInteracao()
+    {
+        CanvasGroup canvasGroup =
+            GetComponent<CanvasGroup>();
+
+        if (canvasGroup != null)
+        {
+            canvasGroup.blocksRaycasts = !placed;
+            canvasGroup.interactable = !placed;
+        }
+    }
+
+    public LogiVerySaveManager.ProdutoMontagem
+        CapturarParaSalvamento()
+    {
+        var dados =
+            new LogiVerySaveManager.ProdutoMontagem();
+
+        dados.colocadoNaCaixa = placed;
+        dados.posicao =
+            rectTransform.anchoredPosition;
+
+        GrupoPedidoVisual grupo =
+            GetComponent<GrupoPedidoVisual>();
+
+        if (grupo != null)
+        {
+            dados.desenhosAtivos =
+                grupo.CapturarDesenhosAtivos();
+        }
+
+        return dados;
+    }
+
+    public void RestaurarDoSalvamento(
+        LogiVerySaveManager.ProdutoMontagem dados)
+    {
+        if (dados == null)
+            return;
+
+        ResetProduct();
+
+        GrupoPedidoVisual grupo =
+            GetComponent<GrupoPedidoVisual>();
+
+        if (grupo != null &&
+            dados.desenhosAtivos != null)
+        {
+            grupo.RestaurarDesenhosAtivos(
+                dados.desenhosAtivos
+            );
+        }
+
+        if (dados.colocadoNaCaixa && boxArea != null)
+        {
+            rectTransform.SetParent(boxArea, false);
+            rectTransform.anchoredPosition =
+                dados.posicao;
+
+            placed = true;
+        }
+        else
+        {
+            rectTransform.anchoredPosition =
+                dados.posicao;
+
+            placed = false;
+        }
+
+        AtualizarInteracao();
+    }
+
     public void ResetProduct()
     {
         placed = false;
 
         if (originalParent != null)
         {
-            rectTransform.SetParent(originalParent, false);
+            rectTransform.SetParent(
+                originalParent, false
+            );
         }
 
-        rectTransform.anchoredPosition = originalPosition;
+        rectTransform.anchoredPosition =
+            originalPosition;
 
-        CanvasGroup canvasGroup = GetComponent<CanvasGroup>();
-
-        if (canvasGroup != null)
-        {
-            canvasGroup.blocksRaycasts = true;
-            canvasGroup.interactable = true;
-        }
+        AtualizarInteracao();
 
         Debug.Log(
             "Produto reiniciado: " + gameObject.name

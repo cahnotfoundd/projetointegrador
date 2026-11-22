@@ -8,7 +8,11 @@ using UnityEngine.UI;
 
 public class GeradorPedidoAleatorio : MonoBehaviour
 {
-    public enum Distancia { Curta, Longa }
+    public enum Distancia
+    {
+        Curta,
+        Longa
+    }
 
     [Serializable]
     public class Produto
@@ -25,10 +29,12 @@ public class GeradorPedidoAleatorio : MonoBehaviour
         [Tooltip("Imagem da folha para 3 unidades.")]
         public Sprite demanda3;
 
-        public Sprite Imagem(int qtd) =>
-            qtd == 1 ? demanda1 :
-            qtd == 2 ? demanda2 :
-            qtd == 3 ? demanda3 : null;
+        public Sprite Imagem(int qtd)
+        {
+            return qtd == 1 ? demanda1 :
+                   qtd == 2 ? demanda2 :
+                   qtd == 3 ? demanda3 : null;
+        }
     }
 
     [Serializable]
@@ -36,8 +42,6 @@ public class GeradorPedidoAleatorio : MonoBehaviour
     {
         public string nome;
         public Sprite imagemCompleta;
-
-        // Foto individual usada na tela de montagem.
         public Sprite fotoMontagem;
 
         public bool atendeCurta;
@@ -72,6 +76,7 @@ public class GeradorPedidoAleatorio : MonoBehaviour
         public string cliente;
         public Distancia distancia;
         public Entregador entregador;
+
         public List<Item> itens = new List<Item>();
     }
 
@@ -82,7 +87,7 @@ public class GeradorPedidoAleatorio : MonoBehaviour
     [Header("Arquivo de nomes dos clientes")]
     [Tooltip(
         "Arraste aqui o arquivo NomesClientes.txt. " +
-        "Compatível com Windows e WebGL."
+        "Compativel com Windows e WebGL."
     )]
     [SerializeField] private TextAsset arquivoNomesClientes;
 
@@ -122,6 +127,8 @@ public class GeradorPedidoAleatorio : MonoBehaviour
 
     private List<Item> pedido = new List<Item>();
 
+    private int indicePedidoAtual = -1;
+
     public int TotalProdutosEsperados { get; private set; }
 
     public IReadOnlyList<Item> PedidoAtual => pedido;
@@ -133,16 +140,19 @@ public class GeradorPedidoAleatorio : MonoBehaviour
 
     public Entregador EntregadorAtual { get; private set; }
 
+    public int IndicePedidoAtual => indicePedidoAtual;
+
     private void Start()
     {
         CarregarClientes();
 
+        // Mantem o funcionamento original.
+        // O GameplayManager restaurara os pedidos salvos
+        // quando a integracao estiver concluida.
         if (gerarAoIniciar)
             GerarNovoPedido();
     }
 
-    // Carrega o TXT diretamente como recurso da Unity.
-    // Funciona tanto no Windows quanto no WebGL.
     private void CarregarClientes()
     {
         clientes.Clear();
@@ -184,13 +194,14 @@ public class GeradorPedidoAleatorio : MonoBehaviour
         catch (Exception erro)
         {
             Debug.LogError(
-                "Erro ao carregar clientes: " + erro.Message
+                "Erro ao carregar clientes: " +
+                erro.Message
             );
         }
     }
 
-    // Escolhe entregadores compativeis com a distancia.
-    private List<Entregador> Compativeis(Distancia distancia)
+    private List<Entregador> Compativeis(
+        Distancia distancia)
     {
         return (entregadores ?? Array.Empty<Entregador>())
             .Where(e =>
@@ -203,7 +214,6 @@ public class GeradorPedidoAleatorio : MonoBehaviour
             .ToList();
     }
 
-    // Descobre quantas unidades o produto pode ter.
     private List<int> Quantidades(Produto produto)
     {
         GrupoPedidoVisual grupo =
@@ -221,10 +231,10 @@ public class GeradorPedidoAleatorio : MonoBehaviour
             .ToList();
     }
 
-    // Monta opcoes de pedidos com duas demandas.
     private List<Item[]> CriarCombinacoes()
     {
-        var validos = (produtos ?? Array.Empty<Produto>())
+        var validos =
+            (produtos ?? Array.Empty<Produto>())
             .Where(p =>
                 p != null &&
                 p.prefab != null &&
@@ -269,7 +279,10 @@ public class GeradorPedidoAleatorio : MonoBehaviour
         return combinacoes;
     }
 
-    // Sorteia os tres pedidos.
+    // ==========================================
+    // GERACAO NORMAL DOS PEDIDOS
+    // ==========================================
+
     public void GerarNovoPedido()
     {
         if (clientes.Count == 0)
@@ -327,8 +340,10 @@ public class GeradorPedidoAleatorio : MonoBehaviour
 
         pedidos.Clear();
         pedido = new List<Item>();
+
         TotalProdutosEsperados = 0;
         EntregadorAtual = null;
+        indicePedidoAtual = -1;
 
         var nomes = clientes
             .OrderBy(_ => UnityEngine.Random.value)
@@ -388,7 +403,6 @@ public class GeradorPedidoAleatorio : MonoBehaviour
         );
     }
 
-    // Coloca os dados sorteados na folha.
     private void ExibirFolha(FolhaUI folha, Pedido dados)
     {
         if (folha.nomeCliente != null)
@@ -404,8 +418,6 @@ public class GeradorPedidoAleatorio : MonoBehaviour
             folha.imagemDistancia.SetNativeSize();
         }
 
-        // Curta = eletrica = ecologico.
-        // Longa = combustivel = nao ecologico.
         if (folha.imagemTrajeto != null)
         {
             bool ecologico =
@@ -456,7 +468,10 @@ public class GeradorPedidoAleatorio : MonoBehaviour
         imagem.SetNativeSize();
     }
 
-    // Chamado quando o jogador clica em uma folha.
+    // ==========================================
+    // SELECAO E MONTAGEM
+    // ==========================================
+
     public void SelecionarPedido(int indice)
     {
         if (indice < 0 ||
@@ -477,6 +492,8 @@ public class GeradorPedidoAleatorio : MonoBehaviour
         Pedido escolhido = pedidos[indice];
 
         pedido = escolhido.itens;
+        indicePedidoAtual = indice;
+
         DistanciaAtual = escolhido.distancia;
         EntregadorAtual = escolhido.entregador;
 
@@ -490,7 +507,6 @@ public class GeradorPedidoAleatorio : MonoBehaviour
 
         LimparProdutos();
 
-        // Abre a tela antes de criar os objetos.
         panelMontagem.SetActive(true);
 
         mountingManager.ConfigurarProdutos(
@@ -571,7 +587,6 @@ public class GeradorPedidoAleatorio : MonoBehaviour
         );
     }
 
-    // Apaga produtos criados anteriormente.
     private void LimparProdutos()
     {
         foreach (GameObject obj in objetosCriados)
@@ -586,9 +601,280 @@ public class GeradorPedidoAleatorio : MonoBehaviour
         objetosCriados.Clear();
     }
 
+    // ==========================================
+    // SALVAMENTO DOS PEDIDOS
+    // ==========================================
+
+    public bool CapturarPedidosParaSalvamento(
+        LogiVerySaveManager.Dados dados)
+    {
+        if (dados == null || pedidos.Count != 3)
+        {
+            Debug.LogError(
+                "LogiVery: nao foi possivel capturar " +
+                "os pedidos para salvar."
+            );
+            return false;
+        }
+
+        List<LogiVerySaveManager.Pedido> registros =
+            new List<LogiVerySaveManager.Pedido>();
+
+        foreach (Pedido original in pedidos)
+        {
+            int indiceEntregador = Array.IndexOf(
+                entregadores,
+                original.entregador
+            );
+
+            if (indiceEntregador < 0 ||
+                original.itens == null ||
+                original.itens.Count != 2)
+            {
+                Debug.LogError(
+                    "LogiVery: pedido com dados invalidos."
+                );
+                return false;
+            }
+
+            LogiVerySaveManager.Pedido registro =
+                new LogiVerySaveManager.Pedido
+                {
+                    cliente = original.cliente,
+                    distancia = (int)original.distancia,
+                    indiceEntregador = indiceEntregador
+                };
+
+            foreach (Item item in original.itens)
+            {
+                int indiceProduto = Array.IndexOf(
+                    produtos,
+                    item.produto
+                );
+
+                if (indiceProduto < 0)
+                {
+                    Debug.LogError(
+                        "LogiVery: produto nao encontrado " +
+                        "no cadastro para salvar."
+                    );
+                    return false;
+                }
+
+                registro.itens.Add(
+                    new LogiVerySaveManager.ItemPedido
+                    {
+                        indiceProduto = indiceProduto,
+                        quantidade = item.quantidade
+                    }
+                );
+            }
+
+            registros.Add(registro);
+        }
+
+        dados.pedidos = registros;
+        dados.pedidoSelecionado = indicePedidoAtual;
+
+        // Preserva tambem um eventual entregador substituto.
+        if (dados.substituicao == null)
+        {
+            dados.substituicao =
+                new LogiVerySaveManager.Substituicao();
+        }
+
+        dados.substituicao.indiceEntregadorAtual =
+            EntregadorAtual == null
+                ? -1
+                : Array.IndexOf(
+                    entregadores,
+                    EntregadorAtual
+                );
+
+        return true;
+    }
+
+    // Recupera as tres folhas sem fazer novos sorteios.
+    public bool RestaurarPedidosDoSalvamento(
+        LogiVerySaveManager.Dados dados)
+    {
+        if (dados == null ||
+            dados.pedidos == null ||
+            dados.pedidos.Count != 3 ||
+            folhas == null ||
+            folhas.Length != 3 ||
+            produtos == null ||
+            entregadores == null)
+        {
+            Debug.LogError(
+                "LogiVery: dados de pedidos " +
+                "incompletos para restauracao."
+            );
+            return false;
+        }
+
+        // Monta primeiro uma lista temporaria.
+        // Se houver erro, nao substitui os pedidos atuais.
+        List<Pedido> recuperados = new List<Pedido>();
+
+        foreach (LogiVerySaveManager.Pedido salvo
+                 in dados.pedidos)
+        {
+            if (salvo == null ||
+                salvo.indiceEntregador < 0 ||
+                salvo.indiceEntregador >= entregadores.Length ||
+                entregadores[salvo.indiceEntregador] == null ||
+                salvo.itens == null ||
+                salvo.itens.Count != 2 ||
+                string.IsNullOrWhiteSpace(salvo.cliente) ||
+                (salvo.distancia != (int)Distancia.Curta &&
+                 salvo.distancia != (int)Distancia.Longa))
+            {
+                Debug.LogError(
+                    "LogiVery: pedido salvo invalido."
+                );
+                return false;
+            }
+
+            Pedido reconstruido = new Pedido
+            {
+                cliente = salvo.cliente,
+                distancia = (Distancia)salvo.distancia,
+                entregador =
+                    entregadores[salvo.indiceEntregador]
+            };
+
+            foreach (LogiVerySaveManager.ItemPedido itemSalvo
+                     in salvo.itens)
+            {
+                if (itemSalvo == null ||
+                    itemSalvo.indiceProduto < 0 ||
+                    itemSalvo.indiceProduto >= produtos.Length ||
+                    produtos[itemSalvo.indiceProduto] == null ||
+                    produtos[itemSalvo.indiceProduto].prefab == null)
+                {
+                    Debug.LogError(
+                        "LogiVery: item salvo nao " +
+                        "existe mais no cadastro."
+                    );
+                    return false;
+                }
+
+                Produto produtoSalvo =
+                    produtos[itemSalvo.indiceProduto];
+
+                Sprite imagem =
+                    produtoSalvo.Imagem(itemSalvo.quantidade);
+
+                if (imagem == null)
+                {
+                    Debug.LogError(
+                        "LogiVery: quantidade salva " +
+                        "nao possui imagem cadastrada."
+                    );
+                    return false;
+                }
+
+                reconstruido.itens.Add(new Item
+                {
+                    produto = produtoSalvo,
+                    quantidade = itemSalvo.quantidade,
+                    imagem = imagem
+                });
+            }
+
+            recuperados.Add(reconstruido);
+        }
+
+        LimparProdutos();
+
+        if (mountingManager != null)
+            mountingManager.ConfigurarProdutos(objetosCriados);
+
+        pedidos.Clear();
+        pedidos.AddRange(recuperados);
+
+        pedido = new List<Item>();
+        indicePedidoAtual = -1;
+        EntregadorAtual = null;
+        TotalProdutosEsperados = 0;
+
+        for (int i = 0; i < pedidos.Count; i++)
+        {
+            ExibirFolha(folhas[i], pedidos[i]);
+        }
+
+        Debug.Log(
+            "LogiVery: os mesmos tres pedidos " +
+            "foram restaurados."
+        );
+
+        return true;
+    }
+
+    // Recupera a escolha do jogador.
+    // A posicao dos produtos e o cronometro
+    // serao restaurados pelos respectivos sistemas.
+    public bool RestaurarPedidoSelecionado(
+        LogiVerySaveManager.Dados dados)
+    {
+        if (dados == null)
+            return false;
+
+        if (dados.pedidoSelecionado < 0)
+            return true;
+
+        if (dados.pedidoSelecionado >= pedidos.Count)
+        {
+            Debug.LogError(
+                "LogiVery: indice do pedido salvo invalido."
+            );
+            return false;
+        }
+
+        SelecionarPedido(dados.pedidoSelecionado);
+
+        if (indicePedidoAtual != dados.pedidoSelecionado)
+            return false;
+
+        // Pode existir um entregador substituto,
+        // diferente do entregador inicial da folha.
+        if (dados.substituicao != null)
+        {
+            int indiceEntregador =
+                dados.substituicao.indiceEntregadorAtual;
+
+            if (entregadores != null &&
+                indiceEntregador >= 0 &&
+                indiceEntregador < entregadores.Length &&
+                entregadores[indiceEntregador] != null)
+            {
+                EntregadorAtual =
+                    entregadores[indiceEntregador];
+
+                if (cronometroPreparacao != null)
+                {
+                    cronometroPreparacao.Iniciar(
+                        EntregadorAtual
+                    );
+                }
+            }
+        }
+
+        Debug.Log(
+            "LogiVery: pedido selecionado recuperado: " +
+            (indicePedidoAtual + 1)
+        );
+
+        return true;
+    }
+
+    // ==========================================
+    // SUBSTITUICAO DE ENTREGADOR
+    // ==========================================
+
     public bool SortearEntregadorSubstituto(
-        out Entregador substituto
-    )
+        out Entregador substituto)
     {
         substituto = null;
 
